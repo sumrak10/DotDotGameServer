@@ -1,8 +1,8 @@
 package database
 
 import (
+	"OnlineGame/config"
 	"log"
-	"os"
 	"sync"
 
 	"github.com/glebarez/sqlite"
@@ -16,7 +16,7 @@ var (
 
 func GetDB() *gorm.DB {
 	dbOnce.Do(func() {
-		db, err := gorm.Open(sqlite.Open(os.Getenv("DB_PATH")), &gorm.Config{})
+		db, err := gorm.Open(sqlite.Open(config.Database().Path), &gorm.Config{})
 		if err != nil {
 			log.Fatal("failed to connect to database:", err)
 		}

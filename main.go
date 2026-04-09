@@ -1,6 +1,7 @@
 package main
 
 import (
+	"OnlineGame/config"
 	"OnlineGame/database"
 	"OnlineGame/game/world"
 	"OnlineGame/manager"
@@ -10,6 +11,9 @@ import (
 )
 
 func main() {
+	config.InitAll()
+	fmt.Println("Config initialized...")
+
 	_ = database.GetDB()
 	fmt.Println("DB initialized...")
 

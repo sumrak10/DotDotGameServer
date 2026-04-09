@@ -26,7 +26,7 @@ func Middleware(next http.Handler) http.Handler {
 		claims := &Claims{}
 
 		token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
-			return jwtSecret, nil
+			return jwtSecretBytes, nil
 		})
 		if err != nil || !token.Valid {
 			APIhelpers.ErrorJSONResponse(w, "invalid token", http.StatusUnauthorized)

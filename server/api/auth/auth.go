@@ -1,11 +1,11 @@
 package authAPI
 
 import (
+	"OnlineGame/config"
 	"OnlineGame/database"
 	APIhelpers "OnlineGame/server/api/helpers"
 	"encoding/json"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+var jwtSecretBytes []byte = []byte(config.JWT().Secret)
 
 type Claims struct {
 	UserID uint `json:"user_id"`
@@ -111,5 +111,5 @@ func GenerateToken(userID uint) (string, error) {
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
+	return token.SignedString(jwtSecretBytes)
 }
