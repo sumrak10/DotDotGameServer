@@ -12,9 +12,9 @@ type InputMessage struct {
 }
 
 type SendArmyMessagePayload struct {
-	Value       uint         `json:"value"`
-	HeadingFrom nodes.NodeID `json:"heading_from"`
-	HeadingTo   nodes.NodeID `json:"heading_to"`
+	Value         uint         `json:"value"`
+	HeadingFromID nodes.NodeID `json:"heading_from_id"`
+	HeadingToID   nodes.NodeID `json:"heading_to_id"`
 }
 
 type UpdateNodeTypeMessagePayload struct {
@@ -34,8 +34,9 @@ type OutputMessage struct {
 }
 
 type TickMessagePayload struct {
-	MatchID uint                    `json:"match_id"`
-	World   WorldTickMessagePayload `json:"world"`
+	MatchID    uint                    `json:"match_id"`
+	CurrentTPS float32                 `json:"current_tps"`
+	World      WorldTickMessagePayload `json:"world"`
 }
 
 type WorldTickMessagePayload struct {

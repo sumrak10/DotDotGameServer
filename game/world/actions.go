@@ -5,28 +5,34 @@ import (
 	"errors"
 )
 
-func (w *World) SendArmy(playerID uint, headingFrom nodes.NodeID, headingTo nodes.NodeID, value uint) error {
-	headingFromNode := w.Nodes[headingFrom]
+func (w *World) SendArmy(playerID uint, headingFromID nodes.NodeID, headingToID nodes.NodeID, value uint) error {
+	headingFromNode, _found := w.Nodes[headingFromID]
+	if !_found {
+		return errors.New("heading from node not found")
+	}
 	if headingFromNode.OwnerID != playerID {
 		return errors.New("player can't send army from not own node")
 	}
 	if headingFromNode.Value < value {
 		return errors.New("army value is not enough to send army")
 	}
-	headingToNode := w.Nodes[headingTo]
-	nodeEdge := w.getNodeEdgeByN1N2(headingFrom, headingTo)
+	headingToNode, _found := w.Nodes[headingToID]
+	if !_found {
+		return errors.New("heading to node not found")
+	}
+	nodeEdge := w.getNodeEdgeByN1N2(headingFromNode.ID, headingToNode.ID)
 	if nodeEdge == nil {
 		return errors.New("between this nodes no edge")
 	}
 	headingFromNode.Value -= value
 
 	_army := &nodes.Army{
-		ID:          w.armyIDGenerator(),
-		Pos:         0,
-		NodeEdge:    nodeEdge,
-		HeadingFrom: headingFromNode,
-		HeadingTo:   headingToNode,
-		Value:       value,
+		ID:            w.armyIDGenerator(),
+		Pos:           0,
+		NodeEdgeID:    nodeEdge.ID,
+		HeadingFromID: headingFromNode.ID,
+		HeadingToID:   headingToNode.ID,
+		Value:         value,
 	}
 
 	nodeEdge.Armies = append(nodeEdge.Armies, _army)
@@ -43,6 +49,10 @@ func (w *World) UpdateNodeType(playerID uint, nodeID nodes.NodeID, NewType nodes
 	}
 	node.Type = NewType
 	node.Value -= NewType.TransformCost()
+	if node.Shield > NewType.MaxShield() {
+		node.Shield = NewType.MaxShield()
+	}
+	node.ResetTicks()
 	return nil
 }
 

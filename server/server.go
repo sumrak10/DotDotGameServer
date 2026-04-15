@@ -3,6 +3,7 @@ package server
 import (
 	"OnlineGame/manager"
 	authAPI "OnlineGame/server/api/auth"
+	htmlAPI "OnlineGame/server/api/html"
 	matchesAPI "OnlineGame/server/api/matches"
 	usersAPI "OnlineGame/server/api/users"
 	wsAPI "OnlineGame/server/api/ws"
@@ -26,6 +27,7 @@ func (s *Server) Start(addr string) error {
 	r := mux.NewRouter()
 
 	// Unprotected routes
+	htmlAPI.RegisterHtmlRoutes(r)
 	authAPI.RegisterAuthRoutes(r)
 	wsAPI.RegisterWSRoutes(r)
 

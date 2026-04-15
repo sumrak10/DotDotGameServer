@@ -25,7 +25,7 @@ type Manager struct {
 	clientGame   map[uint]uint // clientID - MatchID
 
 	lobbyMu sync.RWMutex
-	lobby   map[uint][]*clients.Client // MatchID - []ClientID
+	lobby   map[uint][]*clients.Client // MatchID - []Client
 }
 
 func NewManager() *Manager {

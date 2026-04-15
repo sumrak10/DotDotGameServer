@@ -16,11 +16,9 @@ func (m *Manager) CreateGame(clientID uint, match *database.Match) error {
 	_game.OnShutdown = func() {
 		_deletedIdleGame := m.deleteIdleGame(match.ID)
 		if _deletedIdleGame != nil {
-
 		}
 		_deletedActiveGame := m.deleteActiveGame(match.ID)
 		if _deletedActiveGame != nil {
-
 		}
 	}
 

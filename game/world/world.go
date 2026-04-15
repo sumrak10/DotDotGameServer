@@ -14,15 +14,19 @@ type World struct {
 	// Node
 	Nodes map[nodes.NodeID]*nodes.Node `json:"nodes"`
 
-	// NodeEdge
-	NodeEdges     []*nodes.NodeEdge `json:"node_edges"`
-	nodeEdgesMap  map[nodes.NodeEdgeKey]*nodes.NodeEdge
-	nodeNeighbors map[nodes.NodeID][]nodes.NodeID
+	// NodeEdgeID
+	NodeEdges       []*nodes.NodeEdge `json:"node_edges"`
+	nodeEdgeIDMap   map[nodes.NodeEdgeID]*nodes.NodeEdge
+	nodeEdgesKeyMap map[nodes.NodeEdgeKey]*nodes.NodeEdge
+	nodeNeighbors   map[nodes.NodeID][]nodes.NodeID
 
 	// UID generators
 	nodeIDGenerator     func() nodes.NodeID
 	nodeEdgeIDGenerator func() nodes.NodeEdgeID
 	armyIDGenerator     func() nodes.ArmyID
+
+	// Physics
+	delta float64
 }
 
 func NewWorld(minPlayers, maxPlayers uint8) *World {
@@ -33,9 +37,10 @@ func NewWorld(minPlayers, maxPlayers uint8) *World {
 
 		Nodes: make(map[nodes.NodeID]*nodes.Node),
 
-		NodeEdges:     make([]*nodes.NodeEdge, 0),
-		nodeEdgesMap:  make(map[nodes.NodeEdgeKey]*nodes.NodeEdge),
-		nodeNeighbors: make(map[nodes.NodeID][]nodes.NodeID),
+		NodeEdges:       make([]*nodes.NodeEdge, 0),
+		nodeEdgeIDMap:   make(map[nodes.NodeEdgeID]*nodes.NodeEdge),
+		nodeEdgesKeyMap: make(map[nodes.NodeEdgeKey]*nodes.NodeEdge),
+		nodeNeighbors:   make(map[nodes.NodeID][]nodes.NodeID),
 
 		nodeIDGenerator:     nodes.CreateNodeIDGenerator(),
 		nodeEdgeIDGenerator: nodes.CreateNodeEdgeIDGenerator(),
@@ -44,7 +49,7 @@ func NewWorld(minPlayers, maxPlayers uint8) *World {
 }
 
 func (w *World) Init(players map[uint]uint) {
-	minValue := uint64(10)
+	minValue := uint64(1)
 	maxValue := uint64(20)
 	// Init other nodes
 	for _, node := range w.Nodes {
@@ -54,17 +59,19 @@ func (w *World) Init(players map[uint]uint) {
 	for i, playerID := range players {
 		playerStartNode := w.PlayersStartNodes[i]
 		playerStartNode.OwnerID = playerID
-		playerStartNode.Value = uint(minValue)
+		playerStartNode.Value = uint(10)
 		for _, neighborNode := range w.getNodeNeighbors(playerStartNode.ID) {
-			neighborNode.Value = uint(minValue)
+			neighborNode.Value = uint(10)
 		}
 	}
 }
 
-func (w *World) Tick() {
+func (w *World) Tick(delta float64) bool {
+	w.delta = delta
+
 	for _, node := range w.Nodes {
 		// Node production, Node shields
-		node.Tick()
+		node.Tick(w)
 		// Node AlwaysSendArmyToNodeID logic
 		if node.IsAlwaysSendArmy && node.Value >= 1 {
 			err := w.SendArmy(
@@ -74,12 +81,14 @@ func (w *World) Tick() {
 				node.Value,
 			)
 			if err != nil {
-				panic("its never happened")
+				panic(err)
 			}
 		}
 	}
-	// Delete zero armies from NodeEdge.Armies
+	// Node edges and armies ticks
 	for _, nodeEdge := range w.NodeEdges {
-		nodeEdge.Tick()
+		nodeEdge.Tick(w)
 	}
+
+	return true
 }

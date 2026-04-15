@@ -4,6 +4,10 @@ import (
 	"OnlineGame/utils"
 )
 
+func (g *Game) OwnerPlayerID() uint {
+	return g.ownerPlayerID
+}
+
 func (g *Game) IsPlayerAdmin(playerID uint) bool {
 	return playerID == g.ownerPlayerID
 }

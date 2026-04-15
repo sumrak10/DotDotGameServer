@@ -24,15 +24,15 @@ type User struct {
 	Password string `gorm:"not null"`
 }
 
-func (u *User) ToView() UserView {
-	return UserView{
+func (u *User) ToView() *UserView {
+	return &UserView{
 		ID:       u.ID,
 		UserName: u.UserName,
 	}
 }
 
-func (u *User) ToSensitiveView() UserSensitiveView {
-	return UserSensitiveView{
+func (u *User) ToSensitiveView() *UserSensitiveView {
+	return &UserSensitiveView{
 		ID:       u.ID,
 		UserName: u.UserName,
 		Email:    u.Email,
@@ -59,16 +59,16 @@ func (r *UserRepository) Create(username, email, password string) (*User, error)
 
 func (r *UserRepository) FindByID(id uint) (*User, error) {
 	var user User
-	result := r.db.First(&user, id)
+	result := r.db.First(&user, "id = ?", id)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
 	return &user, result.Error
 }
 
-func (r *UserRepository) FindByUserName(email string) (*User, error) {
+func (r *UserRepository) FindByUserName(username string) (*User, error) {
 	var user User
-	result := r.db.First(&user, "username = ?", email)
+	result := r.db.First(&user, "username = ?", username)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}

@@ -1,6 +1,12 @@
 package nodes
 
+import (
+	"math"
+)
+
 type NodeID uint64
+
+const maxNodeValue = uint(math.MaxUint32 / 2)
 
 type Node struct {
 	ID NodeID `json:"id"`
@@ -24,18 +30,14 @@ type Node struct {
 	shieldRegenTick uint
 }
 
-func (n *Node) UpdateType(newType NodeType) {
-	n.Type = newType
-	if newType == DefaultNodeType {
-		return
-	}
+func (n *Node) ResetTicks() {
 	n.produceTick = 0
 	n.shieldRegenTick = 0
 }
 
-func (n *Node) Tick() {
+func (n *Node) Tick(world WorldInterface) {
 	// Production
-	if n.OwnerID != 0 {
+	if n.OwnerID != 0 && n.Value < maxNodeValue {
 		if n.produceTick >= n.Type.ProduceSpeed() {
 			n.produceTick = 0
 			n.Value++
@@ -44,12 +46,10 @@ func (n *Node) Tick() {
 	}
 
 	// Shields
-	if n.Type.MaxShield() > 0 {
-		if n.Shield >= n.Type.MaxShield() {
+	if n.Type.MaxShield() > 0 && n.Shield < n.Type.MaxShield() {
+		if n.shieldRegenTick >= n.Type.ShieldRegenSpeed() {
 			n.shieldRegenTick = 0
-		} else if n.shieldRegenTick >= n.Type.ShieldRegenSpeed() {
-			n.shieldRegenTick = 0
-			n.Value++
+			n.Shield++
 		}
 		n.shieldRegenTick++
 	}

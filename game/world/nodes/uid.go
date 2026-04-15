@@ -5,7 +5,7 @@ import "sync/atomic"
 func CreateNodeIDGenerator() func() NodeID {
 	var counter uint64
 
-	return func() NodeID { // 2. Анонимная функция не может иметь имени GenerateNodeID
+	return func() NodeID {
 		return NodeID(atomic.AddUint64(&counter, 1))
 	}
 }

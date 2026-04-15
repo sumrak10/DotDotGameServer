@@ -18,21 +18,21 @@ type NodeTypeProps struct {
 var nodeTypePropsMap = map[NodeType]NodeTypeProps{
 	DefaultNodeType: {
 		TransformCost:    0,
-		ProduceSpeed:     60,
+		ProduceSpeed:     30,
 		MaxShield:        5,
 		ShieldRegenSpeed: 30,
 	},
 	ProductionNodeType: {
-		TransformCost:    20,
-		ProduceSpeed:     120,
+		TransformCost:    10,
+		ProduceSpeed:     15,
 		MaxShield:        0,
 		ShieldRegenSpeed: 0,
 	},
 	FortressNodeType: {
-		TransformCost:    20,
-		ProduceSpeed:     30,
+		TransformCost:    10,
+		ProduceSpeed:     120,
 		MaxShield:        20,
-		ShieldRegenSpeed: 60,
+		ShieldRegenSpeed: 15,
 	},
 }
 

@@ -2,6 +2,7 @@ package game
 
 import (
 	"OnlineGame/clients"
+	"OnlineGame/config"
 	"OnlineGame/database"
 	"OnlineGame/game/world"
 	"context"
@@ -19,10 +20,13 @@ type Game struct {
 	cancel     context.CancelFunc
 	running    atomic.Bool
 	OnShutdown func()
-
+	//Players
 	players       map[uint]*clients.Client
 	ownerPlayerID uint
-	world         *world.World
+	// World
+	WorldBuilderName string
+	ExampleWorld     *world.World
+	world            *world.World
 }
 
 func NewGame(match *database.Match, worldBuilderName string, ownerPlayerID uint) (*Game, error) {
@@ -35,7 +39,9 @@ func NewGame(match *database.Match, worldBuilderName string, ownerPlayerID uint)
 
 		players:       make(map[uint]*clients.Client),
 		ownerPlayerID: ownerPlayerID,
-		world:         world.GetPresetVault().BuildWorld(worldBuilderName),
+
+		WorldBuilderName: worldBuilderName,
+		ExampleWorld:     world.GetPresetVault().BuildWorld(worldBuilderName),
 	}, nil
 }
 
@@ -46,10 +52,11 @@ func (g *Game) Start(ownerID uint, players []*clients.Client) error {
 	if ownerID != g.ownerPlayerID {
 		return errors.New("you are not the owner of the game")
 	}
-	if len(players) < int(g.world.MinPlayers) {
-		return errors.New(fmt.Sprintf("provided %d players. for start needed minimum %d", len(g.players), g.world.MinPlayers))
+	if len(players) < int(g.ExampleWorld.MinPlayers) {
+		return errors.New(fmt.Sprintf("provided %d players. for start needed minimum %d", len(g.players), g.ExampleWorld.MinPlayers))
 	}
 	g.running.Store(true)
+	g.world = world.GetPresetVault().BuildWorld(g.WorldBuilderName)
 
 	_indexedPlayers := make(map[uint]uint)
 	for i, player := range players {
@@ -76,22 +83,31 @@ func (g *Game) IsRunning() bool {
 func (g *Game) run() {
 	defer g.Stop()
 
-	for {
+	tickDuration := time.Second / time.Duration(config.Game().TPS)
+	ticker := time.NewTicker(tickDuration)
+	defer ticker.Stop()
+
+	lastTick := time.Now()
+	for range ticker.C {
 		select {
 		case <-g.ctx.Done():
 			return
 		default:
-			g.tick()
-			time.Sleep(time.Millisecond * 16)
+			now := time.Now()
+			elapsed := now.Sub(lastTick)
+			lastTick = now
+			actualTPS := 1.0 / elapsed.Seconds()
+			g.tick(elapsed.Seconds(), actualTPS)
 		}
 	}
 }
 
-func (g *Game) tick() {
-	g.world.Tick()
+func (g *Game) tick(delta float64, currentTPS float64) {
+	g.world.Tick(delta)
 
 	_payload, err := json.Marshal(TickMessagePayload{
-		MatchID: g.Match.ID,
+		MatchID:    g.Match.ID,
+		CurrentTPS: float32(currentTPS),
 		World: WorldTickMessagePayload{
 			Nodes:     g.world.Nodes,
 			NodeEdges: g.world.NodeEdges,

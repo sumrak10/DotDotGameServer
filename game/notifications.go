@@ -11,8 +11,8 @@ type NotificationMessage struct {
 
 func (g *Game) NotifyPlayerDisconnnected(disconnectedPlayerID uint) {
 	g.broadcast(NotificationMessage{
-		Type:     "player_status",
-		Message:  "disconnected",
+		Type:     "player_disconnected",
+		Message:  "Player disconnected",
 		MatchID:  g.Match.ID,
 		PlayerID: disconnectedPlayerID,
 	})
@@ -20,8 +20,8 @@ func (g *Game) NotifyPlayerDisconnnected(disconnectedPlayerID uint) {
 
 func (g *Game) NotifyPlayerReconnnected(reConnectedPlayerID uint) {
 	g.broadcast(NotificationMessage{
-		Type:     "player_status",
-		Message:  "reconnected",
+		Type:     "player_reconnected",
+		Message:  "Player reconnected",
 		MatchID:  g.Match.ID,
 		PlayerID: reConnectedPlayerID,
 	})
@@ -29,16 +29,16 @@ func (g *Game) NotifyPlayerReconnnected(reConnectedPlayerID uint) {
 
 func (g *Game) NotifyGameStarted() {
 	g.broadcast(NotificationMessage{
-		Type:    "match_status",
-		Message: "started",
+		Type:    "match_started",
+		Message: "Match started",
 		MatchID: g.Match.ID,
 	})
 }
 
 func (g *Game) NotifyGameEnded() {
 	g.broadcast(NotificationMessage{
-		Type:    "match_status",
-		Message: "ended",
+		Type:    "match_ended",
+		Message: "Match ended",
 		MatchID: g.Match.ID,
 	})
 }

@@ -4,6 +4,7 @@ import (
 	"OnlineGame/clients"
 	"OnlineGame/game/world/nodes"
 	"encoding/json"
+	"fmt"
 )
 
 func (g *Game) ApplyInput(client *clients.Client, inputMessage InputMessage) {
@@ -14,11 +15,12 @@ func (g *Game) ApplyInput(client *clients.Client, inputMessage InputMessage) {
 		if err != nil {
 			panic(err)
 		}
+		fmt.Println("Received action", sendArmyMessage)
 		g.sendArmyAction(
 			client,
 			inputMessage,
-			sendArmyMessage.HeadingFrom,
-			sendArmyMessage.HeadingTo,
+			sendArmyMessage.HeadingFromID,
+			sendArmyMessage.HeadingToID,
 			sendArmyMessage.Value,
 		)
 	case "update_node_type_action":
@@ -27,6 +29,7 @@ func (g *Game) ApplyInput(client *clients.Client, inputMessage InputMessage) {
 		if err != nil {
 			panic(err)
 		}
+		fmt.Println("Received action", updateNodeTypeMessage)
 		g.updateNodeTypeAction(
 			client,
 			inputMessage,
@@ -39,6 +42,7 @@ func (g *Game) ApplyInput(client *clients.Client, inputMessage InputMessage) {
 		if err != nil {
 			panic(err)
 		}
+		fmt.Println("Received action", setAlwaysSendArmyMessagePayload)
 		g.setAlwaysSendArmyAction(
 			client,
 			inputMessage,
@@ -49,8 +53,8 @@ func (g *Game) ApplyInput(client *clients.Client, inputMessage InputMessage) {
 	}
 }
 
-func (g *Game) sendArmyAction(client *clients.Client, inputMessage InputMessage, headingFrom nodes.NodeID, headingTo nodes.NodeID, Value uint) {
-	actionErr := g.world.SendArmy(client.User.ID, headingFrom, headingTo, Value)
+func (g *Game) sendArmyAction(client *clients.Client, inputMessage InputMessage, headingFromID nodes.NodeID, headingToID nodes.NodeID, Value uint) {
+	actionErr := g.world.SendArmy(client.User.ID, headingFromID, headingToID, Value)
 	// Output
 	SendActionMessageResponse(client, inputMessage.Type, actionErr)
 }

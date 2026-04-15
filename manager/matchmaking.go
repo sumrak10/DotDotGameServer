@@ -4,14 +4,41 @@ import (
 	"OnlineGame/clients"
 	"OnlineGame/database"
 	"errors"
+	"fmt"
+	"time"
 )
 
-func (m *Manager) GetMatchLobbyUsers(matchID uint) []*database.User {
-	allClients := m.lobby[matchID]
-	users := make([]*database.User, len(allClients))
-	for _, client := range allClients {
-		users = append(users, client.User)
+type GameView struct {
+	MatchID    uint                 `json:"id"`
+	CreatedAt  time.Time            `json:"created_at"`
+	Players    []*database.UserView `json:"players"`
+	Admin      *database.UserView   `json:"owner"`
+	MinPlayers uint8                `json:"min_players"`
+	MaxPlayers uint8                `json:"max_players"`
+}
+
+func (m *Manager) GetIdleMatches() []*GameView {
+	gamesList := make([]*GameView, 0)
+	for _matchID, _game := range m.idleGames {
+		gamesList = append(gamesList, &GameView{
+			MatchID:    _game.Match.ID,
+			CreatedAt:  _game.Match.CreatedAt,
+			Players:    m.GetMatchLobbyUsers(_matchID),
+			Admin:      m.clients[_game.OwnerPlayerID()].User.ToView(),
+			MinPlayers: _game.ExampleWorld.MinPlayers,
+			MaxPlayers: _game.ExampleWorld.MaxPlayers,
+		})
 	}
+	return gamesList
+}
+
+func (m *Manager) GetMatchLobbyUsers(matchID uint) []*database.UserView {
+	allClients := m.lobby[matchID]
+	users := make([]*database.UserView, 0)
+	for _, client := range allClients {
+		users = append(users, client.User.ToView())
+	}
+	fmt.Println(users)
 	return users
 }
 
@@ -44,6 +71,9 @@ func (m *Manager) joinMatchLobby(client *clients.Client, matchID uint) error {
 	if !_idleGameFound && _activeGameFound {
 		return errors.New("game is running")
 	}
+
+	// Notify other clients
+	m.notifyPlayerJoinMatchLobby(matchID, client)
 
 	// Add client to lobby
 	m.lobbyMu.Lock()
@@ -92,7 +122,6 @@ func (m *Manager) leaveMatchLobby(client *clients.Client, matchID uint) error {
 		}
 	}
 	m.lobbyMu.Unlock()
-
 	// Remove client from clientGame
 	m.clientGameMu.Lock()
 	_, ok := m.clientGame[client.User.ID]
@@ -100,5 +129,9 @@ func (m *Manager) leaveMatchLobby(client *clients.Client, matchID uint) error {
 		delete(m.clientGame, client.User.ID)
 	}
 	m.clientGameMu.Unlock()
+
+	// Notify other clients
+	m.notifyPlayerJoinMatchLobby(matchID, client)
+
 	return nil
 }
