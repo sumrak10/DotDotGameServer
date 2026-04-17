@@ -32,6 +32,7 @@ func (w *World) SendArmy(playerID uint, headingFromID nodes.NodeID, headingToID 
 		NodeEdgeID:    nodeEdge.ID,
 		HeadingFromID: headingFromNode.ID,
 		HeadingToID:   headingToNode.ID,
+		OwnerPlayerID: playerID,
 		Value:         value,
 	}
 

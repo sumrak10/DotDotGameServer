@@ -5,6 +5,7 @@ import (
 	"OnlineGame/manager"
 	authAPI "OnlineGame/server/api/auth"
 	APIhelpers "OnlineGame/server/api/helpers"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -13,7 +14,7 @@ import (
 
 func RegisterMatchRoutes(r *mux.Router) {
 	r.HandleFunc("/matches", CreateMatch).Methods("POST")
-	r.HandleFunc("/matches", GetIdleMatches).Methods("GET")
+	r.HandleFunc("/matches", GetAllMatches).Methods("GET")
 	r.HandleFunc("/matches/{match_id}/start", StartMatch).Methods("POST")
 	//r.HandleFunc("/matches/{match_id}/surrender", SurrenderMatch).Methods("POST")
 
@@ -30,8 +31,9 @@ func CreateMatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	m := manager.GetManager()
-	if m.IsClientInMatch(userID) {
-		APIhelpers.ErrorJSONResponse(w, "user currently in match", http.StatusBadRequest)
+	_inGame, _currentMatchID := m.IsClientInMatch(userID)
+	if _inGame {
+		APIhelpers.ErrorJSONResponse(w, fmt.Sprintf("user currently in match with id=%d", _currentMatchID), http.StatusBadRequest)
 		return
 	}
 
@@ -48,15 +50,15 @@ func CreateMatch(w http.ResponseWriter, r *http.Request) {
 	APIhelpers.CreatedJsonResponse(w, match.ID)
 }
 
-func GetIdleMatches(w http.ResponseWriter, r *http.Request) {
-	_, _authorized := authAPI.GetUserIDFromRequest(r)
+func GetAllMatches(w http.ResponseWriter, r *http.Request) {
+	userID, _authorized := authAPI.GetUserIDFromRequest(r)
 	if !_authorized {
 		APIhelpers.ErrorJSONResponse(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	m := manager.GetManager()
-	result := m.GetIdleMatches()
+	result := m.GetAllMatches(userID)
 
 	APIhelpers.JSONResponse(w, result, http.StatusOK)
 }

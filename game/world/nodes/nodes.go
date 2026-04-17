@@ -28,6 +28,7 @@ type Node struct {
 	// Tick counters
 	produceTick     uint
 	shieldRegenTick uint
+	sendArmyTick    uint
 }
 
 func (n *Node) ResetTicks() {
@@ -52,5 +53,21 @@ func (n *Node) Tick(world WorldInterface) {
 			n.Shield++
 		}
 		n.shieldRegenTick++
+	}
+
+	if n.IsAlwaysSendArmy && n.Value >= 1 {
+		if n.sendArmyTick >= n.Type.ProduceSpeed() {
+			err := world.SendArmy(
+				n.OwnerID,
+				n.ID,
+				n.AlwaysSendArmyToNodeID,
+				n.Value,
+			)
+			if err != nil {
+				panic(err)
+			}
+			n.sendArmyTick = 0
+		}
+		n.sendArmyTick++
 	}
 }

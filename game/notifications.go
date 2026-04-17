@@ -42,3 +42,12 @@ func (g *Game) NotifyGameEnded() {
 		MatchID: g.Match.ID,
 	})
 }
+
+func (g *Game) NotifyGameWinner(winnerID uint) {
+	g.broadcast(NotificationMessage{
+		Type:     "match_winner",
+		Message:  "Find winner!",
+		MatchID:  g.Match.ID,
+		PlayerID: winnerID,
+	})
+}

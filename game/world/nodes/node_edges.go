@@ -23,7 +23,7 @@ type NodeEdge struct {
 	Armies []*Army `json:"armies"`
 }
 
-func (n *NodeEdge) Tick(world WorldInterface) {
+func (n *NodeEdge) Tick(world WorldInterface, playerActiveCounter map[uint]uint) {
 	writeIdx := 0
 
 	for i := 0; i < len(n.Armies); i++ {
@@ -34,6 +34,7 @@ func (n *NodeEdge) Tick(world WorldInterface) {
 		if army.Value > 0 {
 			n.Armies[writeIdx] = army
 			writeIdx++
+			playerActiveCounter[army.OwnerPlayerID]++
 		}
 	}
 

@@ -66,29 +66,20 @@ func (w *World) Init(players map[uint]uint) {
 	}
 }
 
-func (w *World) Tick(delta float64) bool {
+func (w *World) Tick(delta float64) map[uint]uint {
 	w.delta = delta
+	playersActivesCount := make(map[uint]uint)
 
 	for _, node := range w.Nodes {
 		// Node production, Node shields
 		node.Tick(w)
 		// Node AlwaysSendArmyToNodeID logic
-		if node.IsAlwaysSendArmy && node.Value >= 1 {
-			err := w.SendArmy(
-				node.OwnerID,
-				node.ID,
-				node.AlwaysSendArmyToNodeID,
-				node.Value,
-			)
-			if err != nil {
-				panic(err)
-			}
-		}
+		playersActivesCount[node.OwnerID]++
 	}
 	// Node edges and armies ticks
 	for _, nodeEdge := range w.NodeEdges {
-		nodeEdge.Tick(w)
+		nodeEdge.Tick(w, playersActivesCount)
 	}
 
-	return true
+	return playersActivesCount
 }

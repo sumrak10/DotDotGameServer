@@ -10,6 +10,7 @@ type Army struct {
 	NodeEdgeID    NodeEdgeID `json:"node_edge_id"`
 	HeadingFromID NodeID     `json:"heading_from_id"`
 	HeadingToID   NodeID     `json:"heading_to_id"`
+	OwnerPlayerID uint       `json:"owner_player_id"`
 	Value         uint       `json:"value"`
 }
 
@@ -33,21 +34,20 @@ func (a *Army) Tick(world WorldInterface) {
 	a.Pos += uint(float64(config.Game().ArmySpeed) * world.GetDelta())
 
 	// Collision armies
-	isSameOwner := headingTo.OwnerID == headingFrom.OwnerID
-
-	if !isSameOwner { //
-		for _, otherArmy := range nodeEdge.Armies {
-			otherArmyHeadingFrom := world.GetNodeByID(otherArmy.HeadingFromID)
-			if headingTo.ID == otherArmyHeadingFrom.ID && a.ID != otherArmy.ID {
-				distance := (nodeEdge.Length - otherArmy.Pos) - a.Pos
-				if distance < 0 && otherArmy.Value != 0 {
-					if a.Value >= otherArmy.Value {
-						a.Value -= otherArmy.Value
-						otherArmy.Value = 0
-					} else {
-						otherArmy.Value -= a.Value
-						a.Value = 0
-					}
+	for _, otherArmy := range nodeEdge.Armies {
+		if a.OwnerPlayerID == otherArmy.OwnerPlayerID {
+			continue // Skip army collisions for 1 player armies
+		}
+		otherArmyHeadingFrom := world.GetNodeByID(otherArmy.HeadingFromID)
+		if headingTo.ID == otherArmyHeadingFrom.ID && a.ID != otherArmy.ID {
+			distance := (nodeEdge.Length - otherArmy.Pos) - a.Pos
+			if distance < 0 && otherArmy.Value != 0 {
+				if a.Value >= otherArmy.Value {
+					a.Value -= otherArmy.Value
+					otherArmy.Value = 0
+				} else {
+					otherArmy.Value -= a.Value
+					a.Value = 0
 				}
 			}
 		}
@@ -57,7 +57,7 @@ func (a *Army) Tick(world WorldInterface) {
 	isReachedGoal := a.Pos >= nodeEdge.Length
 
 	if isReachedGoal && a.Value != 0 {
-		if !isSameOwner {
+		if a.OwnerPlayerID != headingTo.OwnerID { // If army reached other owner node
 			// Shield logic
 			if headingTo.Shield > a.Value {
 				headingTo.Shield -= a.Value
@@ -77,7 +77,7 @@ func (a *Army) Tick(world WorldInterface) {
 				headingTo.IsAlwaysSendArmy = false
 				a.Value = 0
 			}
-		} else {
+		} else { // If army reached same owner node
 			headingTo.Value += a.Value
 			a.Value = 0
 		}

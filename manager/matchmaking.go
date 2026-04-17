@@ -15,11 +15,42 @@ type GameView struct {
 	Admin      *database.UserView   `json:"owner"`
 	MinPlayers uint8                `json:"min_players"`
 	MaxPlayers uint8                `json:"max_players"`
+	Status     string               `json:"status"`
 }
 
-func (m *Manager) GetIdleMatches() []*GameView {
+func (m *Manager) GetAllMatches(clientID uint) []*GameView {
 	gamesList := make([]*GameView, 0)
+	currentMatchID, clientCurrentlyInMatch := m.clientGame[clientID]
+	if clientCurrentlyInMatch {
+		_game, isActiveGame := m.activeGames[currentMatchID]
+		if isActiveGame {
+			gamesList = append(gamesList, &GameView{
+				MatchID:    _game.Match.ID,
+				CreatedAt:  _game.Match.CreatedAt,
+				Players:    m.GetMatchLobbyUsers(currentMatchID),
+				Admin:      m.clients[_game.OwnerPlayerID()].User.ToView(),
+				MinPlayers: _game.ExampleWorld.MinPlayers,
+				MaxPlayers: _game.ExampleWorld.MaxPlayers,
+				Status:     "in_match",
+			})
+		}
+		_game, _isIdleGame := m.idleGames[currentMatchID]
+		if _isIdleGame {
+			gamesList = append(gamesList, &GameView{
+				MatchID:    _game.Match.ID,
+				CreatedAt:  _game.Match.CreatedAt,
+				Players:    m.GetMatchLobbyUsers(currentMatchID),
+				Admin:      m.clients[_game.OwnerPlayerID()].User.ToView(),
+				MinPlayers: _game.ExampleWorld.MinPlayers,
+				MaxPlayers: _game.ExampleWorld.MaxPlayers,
+				Status:     "in_match_lobby",
+			})
+		}
+	}
 	for _matchID, _game := range m.idleGames {
+		if _matchID == currentMatchID {
+			continue
+		}
 		gamesList = append(gamesList, &GameView{
 			MatchID:    _game.Match.ID,
 			CreatedAt:  _game.Match.CreatedAt,
@@ -27,6 +58,21 @@ func (m *Manager) GetIdleMatches() []*GameView {
 			Admin:      m.clients[_game.OwnerPlayerID()].User.ToView(),
 			MinPlayers: _game.ExampleWorld.MinPlayers,
 			MaxPlayers: _game.ExampleWorld.MaxPlayers,
+			Status:     "idle_match",
+		})
+	}
+	for _matchID, _game := range m.activeGames {
+		if _matchID == currentMatchID {
+			continue
+		}
+		gamesList = append(gamesList, &GameView{
+			MatchID:    _game.Match.ID,
+			CreatedAt:  _game.Match.CreatedAt,
+			Players:    m.GetMatchLobbyUsers(_matchID),
+			Admin:      m.clients[_game.OwnerPlayerID()].User.ToView(),
+			MinPlayers: _game.ExampleWorld.MinPlayers,
+			MaxPlayers: _game.ExampleWorld.MaxPlayers,
+			Status:     "active_match",
 		})
 	}
 	return gamesList
@@ -72,9 +118,16 @@ func (m *Manager) joinMatchLobby(client *clients.Client, matchID uint) error {
 		return errors.New("game is running")
 	}
 
+	// Add to match lobby
+	m.addToMatchLobby(client, matchID)
+
 	// Notify other clients
 	m.notifyPlayerJoinMatchLobby(matchID, client)
 
+	return nil
+}
+
+func (m *Manager) addToMatchLobby(client *clients.Client, matchID uint) {
 	// Add client to lobby
 	m.lobbyMu.Lock()
 	m.lobby[matchID] = append(m.lobby[matchID], client)
@@ -83,7 +136,6 @@ func (m *Manager) joinMatchLobby(client *clients.Client, matchID uint) error {
 	m.clientGameMu.Lock()
 	m.clientGame[client.User.ID] = matchID
 	m.clientGameMu.Unlock()
-	return nil
 }
 
 func (m *Manager) LeaveMatchLobby(clientID uint, matchID uint) error {
@@ -113,6 +165,19 @@ func (m *Manager) leaveMatchLobby(client *clients.Client, matchID uint) error {
 		return errors.New("game is running. wait until it ends or surrender before")
 	}
 
+	m.removeFromLobby(client, matchID)
+
+	if len(m.lobby[matchID]) == 0 {
+		// Delete empty lobby game
+		m.deleteIdleGame(matchID)
+	} else {
+		// Notify other clients
+		m.notifyPlayerLeaveMatchLobby(matchID, client)
+	}
+	return nil
+}
+
+func (m *Manager) removeFromLobby(client *clients.Client, matchID uint) {
 	// Remove client from lobby
 	m.lobbyMu.Lock()
 	for i, lobbyClient := range m.lobby[matchID] {
@@ -129,9 +194,4 @@ func (m *Manager) leaveMatchLobby(client *clients.Client, matchID uint) error {
 		delete(m.clientGame, client.User.ID)
 	}
 	m.clientGameMu.Unlock()
-
-	// Notify other clients
-	m.notifyPlayerJoinMatchLobby(matchID, client)
-
-	return nil
 }

@@ -51,13 +51,15 @@ func HandleWS(w http.ResponseWriter, r *http.Request) {
 
 	go client.WriteLoop()
 	client.ReadLoop(
-		func(userID uint, conn *websocket.Conn) {
-			m.OnClose(userID, conn)
-		},
 		func(userID uint, data []byte) {
 			m.OnMessage(userID, data)
 		},
 	)
+
+	err = client.Conn.Close()
+	if err != nil {
+		panic(err)
+	}
 
 	m.RemoveClient(userID)
 }

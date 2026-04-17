@@ -23,10 +23,8 @@ func NewClient(user *database.User, conn *websocket.Conn) *Client {
 }
 
 func (c *Client) ReadLoop(
-	onClose func(userID uint, conn *websocket.Conn),
 	onMessage func(userID uint, data []byte),
 ) {
-	defer onClose(c.User.ID, c.Conn)
 	for {
 		_, data, err := c.Conn.ReadMessage()
 		if err != nil {
@@ -51,4 +49,8 @@ func (c *Client) Send(v any) {
 		return
 	}
 	c.send <- data
+}
+
+func (c *Client) UpdateConnection(newConn *websocket.Conn) {
+	c.Conn = newConn
 }

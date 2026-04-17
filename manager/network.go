@@ -4,8 +4,6 @@ import (
 	"OnlineGame/clients"
 	"OnlineGame/game"
 	"encoding/json"
-
-	"github.com/gorilla/websocket"
 )
 
 func (m *Manager) OnMessage(clientID uint, data []byte) {
@@ -31,21 +29,6 @@ func (m *Manager) OnMessage(clientID uint, data []byte) {
 			return
 		}
 		m.activeGames[matchID].ApplyInput(client, inputMessage)
-	}
-}
-
-func (m *Manager) OnClose(clientID uint, conn *websocket.Conn) {
-	matchID, matchFound := m.clientGame[clientID]
-	if matchFound {
-		activeGame, gameFound := m.activeGames[matchID]
-		if gameFound {
-			activeGame.NotifyPlayerDisconnnected(clientID)
-		}
-	}
-
-	err := conn.Close()
-	if err != nil {
-		panic(err)
 	}
 }
 
