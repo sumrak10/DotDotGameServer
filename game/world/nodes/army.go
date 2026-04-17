@@ -14,24 +14,11 @@ type Army struct {
 	Value         uint       `json:"value"`
 }
 
-func (a *Army) Tick(world WorldInterface) {
-	nodeEdge := world.GetNodeEdgeByID(a.NodeEdgeID)
-	if nodeEdge == nil {
-		panic("node edge not found")
-	}
-	headingFrom := world.GetNodeByID(a.HeadingFromID)
-	if headingFrom == nil {
-		panic("heading from id not found")
-	}
-	headingTo := world.GetNodeByID(a.HeadingToID)
-	if headingTo == nil {
-		panic("heading to id not found")
-	}
-
+func (a *Army) Tick(world WorldInterface, nodeEdge *NodeEdge, headingFrom *Node, headingTo *Node) {
 	if a.Value == 0 {
 		return
 	}
-	a.Pos += uint(float64(config.Game().ArmySpeed) * world.GetDelta())
+	a.Pos += config.Game().ArmySpeed
 
 	// Collision armies
 	for _, otherArmy := range nodeEdge.Armies {

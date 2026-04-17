@@ -18,6 +18,7 @@ type Game struct {
 	// Context
 	ctx        context.Context
 	cancel     context.CancelFunc
+	inputQueue chan PlayerInput
 	running    atomic.Bool
 	OnShutdown func()
 	//Players
@@ -34,8 +35,9 @@ func NewGame(match *database.Match, worldBuilderName string, ownerPlayerID uint)
 	return &Game{
 		Match: match,
 
-		ctx:    ctx,
-		cancel: cancel,
+		ctx:        ctx,
+		cancel:     cancel,
+		inputQueue: make(chan PlayerInput, 1024),
 
 		players:       make(map[uint]*Player),
 		ownerPlayerID: ownerPlayerID,
@@ -83,26 +85,27 @@ func (g *Game) IsRunning() bool {
 func (g *Game) run() {
 	defer g.Stop()
 
-	tickDuration := time.Second / time.Duration(config.Game().TPS)
-	ticker := time.NewTicker(tickDuration)
+	tps := int64(config.Game().TPS)
+	frameDuration := time.Second / time.Duration(tps)
+	ticker := time.NewTicker(frameDuration)
 	defer ticker.Stop()
-
+	fixedDelta := 1.0 / float64(tps)
 	lastTick := time.Now()
-	for range ticker.C {
+	for {
 		select {
 		case <-g.ctx.Done():
 			return
-		default:
-			now := time.Now()
+		case now := <-ticker.C:
 			elapsed := now.Sub(lastTick)
 			lastTick = now
 			actualTPS := 1.0 / elapsed.Seconds()
-			g.tick(elapsed.Seconds(), actualTPS)
+			g.tick(fixedDelta, actualTPS)
 		}
 	}
 }
 
 func (g *Game) tick(delta float64, currentTPS float64) {
+	g.processInputs()
 	_playersActivesCounter := g.world.Tick(delta)
 	_deadPlayers := 0
 	var _winnerID uint

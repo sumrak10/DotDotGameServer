@@ -28,7 +28,7 @@ func (m *Manager) OnMessage(clientID uint, data []byte) {
 			client.Send("match not found")
 			return
 		}
-		m.activeGames[matchID].ApplyInput(client, inputMessage)
+		m.activeGames[matchID].HandleInput(clientID, inputMessage)
 	}
 }
 

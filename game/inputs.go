@@ -1,51 +1,74 @@
 package game
 
 import (
-	"OnlineGame/clients"
 	"OnlineGame/game/world/nodes"
 	"encoding/json"
 	"fmt"
 )
 
-func (g *Game) ApplyInput(client *clients.Client, inputMessage InputMessage) {
-	switch inputMessage.Type {
+type PlayerInput struct {
+	ClientID     uint
+	InputMessage InputMessage
+}
+
+func (g *Game) HandleInput(clientID uint, inputMessage InputMessage) {
+	g.inputQueue <- PlayerInput{
+		ClientID:     clientID,
+		InputMessage: inputMessage,
+	}
+}
+
+func (g *Game) processInputs() {
+	for {
+		select {
+		case input := <-g.inputQueue:
+			g.applyInput(input)
+		default:
+			return
+		}
+	}
+}
+
+func (g *Game) applyInput(playerInput PlayerInput) {
+	player := g.players[playerInput.ClientID]
+	switch playerInput.InputMessage.Type {
 	case "send_army_action":
 		var sendArmyMessage SendArmyMessagePayload
-		err := json.Unmarshal(inputMessage.Payload, &sendArmyMessage)
+		err := json.Unmarshal(playerInput.InputMessage.Payload, &sendArmyMessage)
 		if err != nil {
 			panic(err)
 		}
 		fmt.Println("Received action", sendArmyMessage)
 		g.sendArmyAction(
-			client,
-			inputMessage,
+			player,
+			playerInput.InputMessage.Type,
 			sendArmyMessage.HeadingFromID,
 			sendArmyMessage.HeadingToID,
 			sendArmyMessage.Value,
 		)
 	case "update_node_type_action":
 		var updateNodeTypeMessage UpdateNodeTypeMessagePayload
-		err := json.Unmarshal(inputMessage.Payload, &updateNodeTypeMessage)
+		err := json.Unmarshal(playerInput.InputMessage.Payload, &updateNodeTypeMessage)
 		if err != nil {
 			panic(err)
 		}
 		fmt.Println("Received action", updateNodeTypeMessage)
 		g.updateNodeTypeAction(
-			client,
-			inputMessage,
+			player,
+			playerInput.InputMessage.Type,
 			updateNodeTypeMessage.NodeID,
 			updateNodeTypeMessage.NewType,
 		)
 	case "set_always_send_army_action":
 		var setAlwaysSendArmyMessagePayload SetAlwaysSendArmyMessagePayload
-		err := json.Unmarshal(inputMessage.Payload, &setAlwaysSendArmyMessagePayload)
+		err := json.Unmarshal(playerInput.InputMessage.Payload, &setAlwaysSendArmyMessagePayload)
 		if err != nil {
 			panic(err)
 		}
 		fmt.Println("Received action", setAlwaysSendArmyMessagePayload)
 		g.setAlwaysSendArmyAction(
-			client,
-			inputMessage,
+			player,
+			playerInput.InputMessage.Type,
 			setAlwaysSendArmyMessagePayload.FromNodeID,
 			setAlwaysSendArmyMessagePayload.ToNodeID,
 			setAlwaysSendArmyMessagePayload.Mode,
@@ -53,20 +76,20 @@ func (g *Game) ApplyInput(client *clients.Client, inputMessage InputMessage) {
 	}
 }
 
-func (g *Game) sendArmyAction(client *clients.Client, inputMessage InputMessage, headingFromID nodes.NodeID, headingToID nodes.NodeID, Value uint) {
-	actionErr := g.world.SendArmy(client.User.ID, headingFromID, headingToID, Value)
+func (g *Game) sendArmyAction(player *Player, inputMessageType string, headingFromID nodes.NodeID, headingToID nodes.NodeID, Value uint) {
+	actionErr := g.world.SendArmy(player.Client.User.ID, headingFromID, headingToID, Value)
 	// Output
-	SendActionMessageResponse(client, inputMessage.Type, actionErr)
+	SendActionMessageResponse(player.Client, inputMessageType, actionErr)
 }
 
-func (g *Game) updateNodeTypeAction(client *clients.Client, inputMessage InputMessage, nodeID nodes.NodeID, NewType nodes.NodeType) {
-	actionErr := g.world.UpdateNodeType(client.User.ID, nodeID, NewType)
+func (g *Game) updateNodeTypeAction(player *Player, inputMessageType string, nodeID nodes.NodeID, NewType nodes.NodeType) {
+	actionErr := g.world.UpdateNodeType(player.Client.User.ID, nodeID, NewType)
 	// Output
-	SendActionMessageResponse(client, inputMessage.Type, actionErr)
+	SendActionMessageResponse(player.Client, inputMessageType, actionErr)
 }
 
-func (g *Game) setAlwaysSendArmyAction(client *clients.Client, inputMessage InputMessage, fromNodeID nodes.NodeID, toNodeID nodes.NodeID, mode bool) {
-	actionErr := g.world.SetAlwaysSendArmy(client.User.ID, fromNodeID, toNodeID, mode)
+func (g *Game) setAlwaysSendArmyAction(player *Player, inputMessageType string, fromNodeID nodes.NodeID, toNodeID nodes.NodeID, mode bool) {
+	actionErr := g.world.SetAlwaysSendArmy(player.Client.User.ID, fromNodeID, toNodeID, mode)
 	// Output
-	SendActionMessageResponse(client, inputMessage.Type, actionErr)
+	SendActionMessageResponse(player.Client, inputMessageType, actionErr)
 }

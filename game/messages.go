@@ -68,10 +68,10 @@ func BuildActionMessageResponse(actionErr error) []byte {
 	return payloadResponse
 }
 
-func SendOutputMessage(client *clients.Client, _type string, _payloadResponse []byte) {
-	client.Send(OutputMessage{Type: _type, Payload: _payloadResponse})
-}
-
 func SendActionMessageResponse(client *clients.Client, _type string, actionErr error) {
 	SendOutputMessage(client, _type, BuildActionMessageResponse(actionErr))
+}
+
+func SendOutputMessage(client *clients.Client, _type string, _payloadResponse []byte) {
+	client.Send(OutputMessage{Type: _type, Payload: _payloadResponse})
 }

@@ -24,12 +24,18 @@ type NodeEdge struct {
 }
 
 func (n *NodeEdge) Tick(world WorldInterface, playerActiveCounter map[uint]uint) {
-	writeIdx := 0
+	N1 := world.GetNodeByID(n.N1ID)
+	N2 := world.GetNodeByID(n.N2ID)
 
+	writeIdx := 0
 	for i := 0; i < len(n.Armies); i++ {
 		army := n.Armies[i]
 
-		army.Tick(world)
+		if army.HeadingFromID == n.N1ID {
+			army.Tick(world, n, N1, N2)
+		} else {
+			army.Tick(world, n, N2, N1)
+		}
 
 		if army.Value > 0 {
 			n.Armies[writeIdx] = army
