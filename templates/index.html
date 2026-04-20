@@ -564,11 +564,11 @@
             <input type="number" class="ctrl-input" id="g-node-id" value="1">
             <span class="ctrl-label">→</span>
             <input type="number" class="ctrl-input" id="g-target-id" value="2">
-            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="gChangeType(1)">Производство</button>
-            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="gChangeType(2)">Крепость</button>
-            <button class="btn btn-primary" style="padding:4px 10px;font-size:11px;" onclick="gDispatch()">Послать армию (10)</button>
-            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="gAlways(true)">Auto ON</button>
-            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="gAlways(false)">Auto OFF</button>
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="actionUpdateNodeType(1)">Производство</button>
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="actionUpdateNodeType(2)">Крепость</button>
+            <button class="btn btn-primary" style="padding:4px 10px;font-size:11px;" onclick="actionSendArmy()">Послать армию</button>
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="actionSetAlwaysSendArmy(true)">Auto ON</button>
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="actionSetAlwaysSendArmy(false)">Auto OFF</button>
             <button class="btn btn-danger" style="padding:4px 10px;font-size:11px;margin-left:8px;" onclick="goToMatches()">← Выйти</button>
         </div>
     </div>
@@ -583,6 +583,7 @@
 <!-- ═══════════ TOAST ═══════════ -->
 <div id="toast-container"></div>
 
+<script src="/static/protobuf.min.js"></script>
 <script>
     const BASE = 'localhost:8080';
     let token = localStorage.getItem('token');
@@ -591,10 +592,33 @@
     let socket = null;
     let currentMatchId = null;
     let currentLobbyPlayers = [];
-    let gameState = { nodes: {}, node_edges: [] };
+
+    initProtobuf().then(() => {
+        console.log("Protobuf loaded")
+    }).catch(error => {
+        console.log(error)
+    });
 
     if (token !== null) {
         afterLogin()
+    }
+
+    // ── Protobuf ────────────────────────────────────────────────────
+    async function initProtobuf() {
+        try {
+            const root = new protobuf.Root();
+            root.resolvePath = function(origin, target) {return "/static/" + target;};
+            await root.load([
+                "game/input.proto",
+                "game/output.proto",
+                "game/world/world.proto",
+                "game/world/nodes/nodes.proto",
+            ])
+            window.GetProto = (path) => root.lookupType(path);
+            console.log("Доступные типы:", root);
+        } catch (e) {
+            console.error(e);
+        }
     }
 
     // ── Helpers ────────────────────────────────────────────────────
@@ -725,8 +749,7 @@
                 document.getElementById('display-username').textContent = myUsername;
                 document.getElementById('lobby-username').textContent = myUsername;
                 connectSocket();
-                showScreen('matches');
-                loadMatches();
+                goToMatches();
             } else {
                 token = null
                 localStorage.removeItem('token')
@@ -746,93 +769,12 @@
         location.reload();
     }
 
-    // ── WebSocket ──────────────────────────────────────────────────
-    function connectSocket() {
-        if (socket) socket.close();
-        socket = new WebSocket(`ws://${BASE}/ws?token=${token}`);
-
-        socket.onopen = () => {
-            document.querySelectorAll('.ws-dot').forEach(d => d.classList.add('connected'));
-            document.getElementById('g-ws').textContent = '● Online';
-            document.getElementById('g-ws').style.color = 'var(--success)';
-        };
-
-        socket.onclose = () => {
-            document.querySelectorAll('.ws-dot').forEach(d => d.classList.remove('connected'));
-            document.getElementById('g-ws').textContent = '● Offline';
-            document.getElementById('g-ws').style.color = 'var(--danger)';
-        };
-
-        socket.onmessage = (ev) => {
-            const data = JSON.parse(ev.data);
-            handleWsMessage(data);
-        };
-    }
-
-    function handleWsMessage(data) {
-        switch (data.type) {
-            case 'match_tick':
-                document.getElementById('g-tps').textContent = data.payload.current_tps;
-                gameState = data.payload.world;
-                renderGame();
-                break;
-
-            case 'match_lobby_join':
-                logEvent(`${data.player_username} вошёл в лобби матча #${data.match_id}`, 'var(--success)');
-                addLobbyLog(`${data.player_username} присоединился`, 'log-join');
-                if (!currentLobbyPlayers.find(p => p.id === data.player_id)) {
-                    currentLobbyPlayers.push({ id: data.player_id, username: data.player_username });
-                    renderLobbyPlayers();
-                }
-                toast(`${data.player_username} вошёл в лобби`, 'info');
-                break;
-
-            case 'match_lobby_leave':
-                logEvent(`${data.player_username} покинул лобби матча #${data.match_id}`, 'var(--warning)');
-                addLobbyLog(`${data.player_username} вышел`, 'log-leave');
-                currentLobbyPlayers = currentLobbyPlayers.filter(p => p.id !== data.player_id);
-                renderLobbyPlayers();
-                toast(`${data.player_username} покинул лобби`, 'warning');
-                break;
-
-            case 'match_started':
-                logEvent(`Матч #${data.match_id} начался!`, 'var(--success)');
-                toast('Матч начался!', 'success');
-                showScreen('game');
-                document.getElementById('g-match-id').textContent = data.match_id;
-                hideGameOverlay();
-                break;
-
-            case 'match_ended':
-                logEvent(`Матч #${data.match_id} завершён`, 'var(--muted)');
-                toast('Матч завершён', 'info');
-                showGameOverlay('Матч завершён', `Матч #${data.match_id} окончен`);
-                break;
-
-            case 'player_disconnected':
-                logEvent(`Игрок #${data.player_id} отключился от матча #${data.match_id}`, 'var(--danger)');
-                toast(`Игрок отключился`, 'warning');
-                break;
-
-            case 'player_reconnected':
-                logEvent(`Игрок #${data.player_id} переподключился к матчу #${data.match_id}`, 'var(--success)');
-                toast(`Игрок переподключился`, 'info');
-                break;
-
-            default:
-                console.log('WS:', data);
-        }
-    }
-
-    function sendAction(msg) {
-        if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify(msg));
-        } else {
-            toast('WebSocket не подключён', 'error');
-        }
-    }
-
     // ── Matches ────────────────────────────────────────────────────
+    function goToMatches() {
+        showScreen('matches');
+        loadMatches();
+    }
+
     async function loadMatches() {
         const list = document.getElementById('matches-list');
         list.innerHTML = '<div class="empty-state">Загрузка…</div>';
@@ -880,25 +822,10 @@
         try {
             const m = await api('POST', '/matches', {});
             toast(`Матч #${m.id} создан`, 'success');
-            loadMatches();
-            doJoinMatchLobby(m.id);
+            await loadMatches();
+            await doJoinMatchLobby(m.id);
         } catch(e) {
             toast(`Ошибка создания: ${e.message}`, 'error');
-        }
-    }
-
-    async function toMatchLobby(matchId) {
-        try {
-            const players = await api('GET', `/matches/${matchId}/lobby`);
-            currentMatchId = matchId;
-            currentLobbyPlayers = players || [];
-            document.getElementById('lobby-match-id').textContent = `#${matchId}`;
-            document.getElementById('lobby-log').innerHTML = '';
-            renderLobbyPlayers();
-            addLobbyLog('Вы вошли в лобби', 'log-join');
-            showScreen('lobby');
-        } catch(e) {
-            toast(`Ошибка входа: ${e.message}`, 'error');
         }
     }
 
@@ -935,6 +862,7 @@
         currentMatchId = matchId;
         document.getElementById('g-match-id').textContent = matchId;
         showScreen('game');
+        resizeCanvas();
         hideGameOverlay();
         toast(`Переподключение к матчу #${matchId}`, 'info');
     }
@@ -944,7 +872,6 @@
         btn.disabled = true; btn.textContent = 'Запуск…';
         try {
             await api('POST', `/matches/${currentMatchId}/start`, {});
-            // match_started придёт по WebSocket
         } catch(e) {
             toast(`Ошибка старта: ${e.message}`, 'error');
             btn.disabled = false; btn.textContent = '▶ Начать матч';
@@ -958,7 +885,7 @@
             currentMatchId = null;
             currentLobbyPlayers = [];
             showScreen('matches');
-            loadMatches();
+            await loadMatches();
         }
     }
 
@@ -977,14 +904,182 @@
         `).join('');
     }
 
-    function goToMatches() {
-        showScreen('matches');
-        loadMatches();
+    // ── Game ───────────────────────────────────────────────────────
+    function showGameOverlay(title, sub) {
+        document.getElementById('game-overlay-title').textContent = title;
+        document.getElementById('game-overlay-sub').textContent = sub;
+        document.getElementById('game-overlay').classList.add('visible');
     }
 
-    // ── Game ───────────────────────────────────────────────────────
+    function hideGameOverlay() {
+        document.getElementById('game-overlay').classList.remove('visible');
+    }
+
+    // ── WebSocket ──────────────────────────────────────────────────
+    function connectSocket() {
+        if (socket) socket.close();
+        socket = new WebSocket(`ws://${BASE}/ws?token=${token}`);
+        socket.binaryType = "arraybuffer";
+
+        socket.onopen = () => {
+            document.querySelectorAll('.ws-dot').forEach(d => d.classList.add('connected'));
+            document.getElementById('g-ws').textContent = '● Online';
+            document.getElementById('g-ws').style.color = 'var(--success)';
+        };
+
+        socket.onclose = () => {
+            document.querySelectorAll('.ws-dot').forEach(d => d.classList.remove('connected'));
+            document.getElementById('g-ws').textContent = '● Offline';
+            document.getElementById('g-ws').style.color = 'var(--danger)';
+        };
+
+        socket.onmessage = (ev) => {
+            const buffer = new Uint8Array(ev.data);
+            handleWsMessage(window.GetProto('game.OutputMessage').decode(buffer));
+        };
+    }
+
+    function handleWsMessage(message) {
+        switch (message.payload) {
+            case "tick":
+                document.getElementById('g-tps').textContent = message.tick.currentTps.toString();
+                world = message.tick.world
+                renderGame();
+                break;
+
+            case "notification":
+                handleNotification(message.notification)
+                break;
+
+            case "action_output_message":
+                console.log('WS (ACTION_OUTPUT_MESSAGE):', message.action_output_message)
+                break;
+
+            default:
+                console.log('WS (Unexpected):', message);
+        }
+    }
+
+    function handleNotification(data) {
+        switch (data.type) {
+            case 'match_lobby_join':
+                logEvent(`${data.playerUsername} вошёл в лобби матча #${data.matchId}`, 'var(--success)');
+                addLobbyLog(`${data.playerUsername} присоединился`, 'log-join');
+                if (!currentLobbyPlayers.find(p => p.id === data.playerId)) {
+                    currentLobbyPlayers.push({ id: data.playerId, username: data.playerUsername });
+                    renderLobbyPlayers();
+                }
+                toast(`${data.playerUsername} вошёл в лобби`, 'info');
+                break;
+
+            case 'match_lobby_leave':
+                logEvent(`${data.playerUsername} покинул лобби матча #${data.matchId}`, 'var(--warning)');
+                addLobbyLog(`${data.playerUsername} вышел`, 'log-leave');
+                currentLobbyPlayers = currentLobbyPlayers.filter(p => p.id !== data.playerId);
+                renderLobbyPlayers();
+                toast(`${data.playerUsername} покинул лобби`, 'warning');
+                break;
+
+            case 'match_started':
+                logEvent(`Матч #${data.matchId} начался!`, 'var(--success)');
+                toast('Матч начался!', 'success');
+                showScreen('game');
+                resizeCanvas();
+                document.getElementById('g-match-id').textContent = data.matchId;
+                hideGameOverlay();
+                break;
+
+            case 'match_ended':
+                logEvent(`Матч #${data.matchId} завершён`, 'var(--muted)');
+                toast('Матч завершён', 'info');
+                showGameOverlay('Матч завершён', `Матч #${data.matchId} окончен`);
+                break;
+
+            case 'player_disconnected':
+                logEvent(`Игрок #${data.playerId} отключился от матча #${data.matchId}`, 'var(--danger)');
+                toast(`Игрок отключился`, 'warning');
+                break;
+
+            case 'player_reconnected':
+                logEvent(`Игрок #${data.playerId} переподключился к матчу #${data.matchId}`, 'var(--success)');
+                toast(`Игрок переподключился`, 'info');
+                break;
+
+            default:
+                console.log('WS (Unexpected Notification type):', data);
+        }
+    }
+
+    // ── Player actions ───────────────────────────────────────────────────────
+    function actionSendArmy() {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            const InputMessage = window.GetProto("game.InputMessage");
+            const message = {
+                action: {
+                    sendArmy: {
+                        headingFromId: parseInt(document.getElementById('g-node-id').value),
+                        headingToId: parseInt(document.getElementById('g-target-id').value),
+                        value: 10
+                    }
+                }
+            }
+            const errMsg = InputMessage.verify(message);
+            if (errMsg) throw new Error(`Protobuf verify error: ${errMsg}`);
+            const buffer = InputMessage.encode(InputMessage.create(message)).finish();
+            console.log(buffer)
+            socket.send(buffer);
+        } else {
+            toast('WebSocket не подключён', 'error');
+        }
+    }
+
+    function actionUpdateNodeType(t) {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            const InputMessage = window.GetProto("game.InputMessage");
+            const message = {
+                action: {
+                    updateNodeType: {
+                        nodeId: parseInt(document.getElementById('g-node-id').value),
+                        newType: t
+                    }
+                }
+            }
+            const errMsg = InputMessage.verify(message);
+            if (errMsg) throw new Error(`Protobuf verify error: ${errMsg}`);
+            const buffer = InputMessage.encode(InputMessage.create(message)).finish();
+            console.log(buffer)
+            socket.send(buffer);
+        } else {
+            toast('WebSocket не подключён', 'error');
+        }
+    }
+
+    function actionSetAlwaysSendArmy(m) {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            const InputMessage = window.GetProto("game.InputMessage");
+            const message = {
+                action: {
+                    setAlwaysSendArmy: {
+                        fromNodeId: parseInt(document.getElementById('g-node-id').value),
+                        toNodeId: parseInt(document.getElementById('g-target-id').value),
+                        mode: m
+                    }
+                }
+            }
+            const errMsg = InputMessage.verify(message);
+            if (errMsg) throw new Error(`Protobuf verify error: ${errMsg}`);
+            const buffer = InputMessage.encode(InputMessage.create(message)).finish();
+            console.log(buffer)
+            socket.send(buffer);
+        } else {
+            toast('WebSocket не подключён', 'error');
+        }
+    }
+
+    // ── Render ───────────────────────────────────────────────────────
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    let world = null;
     const NODE_RADIUS = 30;
     const SCALE = 200;
     const OFFSET = 100;
@@ -995,30 +1090,19 @@
 
     function renderGame() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawNodeEdges(world.nodes, world.nodeEdges)
+        drawNodes(world.nodes)
+    }
 
-        ctx.strokeStyle = '#333';
-        ctx.lineWidth = 2;
-        gameState.node_edges.forEach(edge => {
-            const n1 = gameState.nodes[edge.n1_id];
-            const n2 = gameState.nodes[edge.n2_id];
-            if (!n1 || !n2) return;
-            const p1 = getCanvasCoords(n1.pos_x, n1.pos_y);
-            const p2 = getCanvasCoords(n2.pos_x, n2.pos_y);
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
-            edge.armies.forEach(army => drawArmy(army, p1, p2));
-        });
-
-        Object.values(gameState.nodes).forEach(node => {
-            const p = getCanvasCoords(node.pos_x, node.pos_y);
-            ctx.fillStyle = node.owner_id === 1 ? '#3498db' : (node.owner_id === 0 ? '#666' : '#e74c3c');
+    function drawNodes(nodes) {
+        Object.values(nodes).forEach(node => {
+            const p = getCanvasCoords(node.posX, node.posY);
+            ctx.fillStyle = node.ownerId === 1 ? '#3498db' : (node.ownerId === 0 ? '#666' : '#e74c3c');
             ctx.beginPath();
             ctx.arc(p.x, p.y, NODE_RADIUS, 0, Math.PI * 2);
             ctx.fill();
             ctx.strokeStyle = node.type === 0 ? '#fff' : '#ffa500';
-            ctx.lineWidth = node.is_always_send_army ? 4 : 1;
+            ctx.lineWidth = node.isAlwaysSendArmy ? 4 : 1;
             ctx.stroke();
             ctx.fillStyle = '#fff';
             ctx.font = 'bold 14px Arial';
@@ -1031,15 +1115,32 @@
         });
     }
 
-    function drawArmy(army) {
-        const s = gameState.nodes[army.heading_from_id];
-        const e = gameState.nodes[army.heading_to_id];
+    function drawNodeEdges(nodes, nodeEdges) {
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 2;
+        nodeEdges.forEach(edge => {
+            let n1 = nodes[edge.n1Id];
+            let n2 = nodes[edge.n2Id];
+            if (!n1 || !n2) return;
+            let p1 = getCanvasCoords(n1.posX, n1.posY);
+            let p2 = getCanvasCoords(n2.posX, n2.posY);
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+            edge.armies.forEach(army => drawArmy(nodes, army));
+        });
+    }
+
+    function drawArmy(nodes, army) {
+        const s = nodes[army.headingFromId];
+        const e = nodes[army.headingToId];
         if (!s || !e) return;
-        const dx = e.pos_x - s.pos_x, dy = e.pos_y - s.pos_y;
+        const dx = e.posX - s.posX, dy = e.posY - s.posY;
         const dist = Math.sqrt(dx*dx + dy*dy);
         let progress = dist > 0 ? Math.min(Math.max((army.pos / 10000) / dist, 0), 1) : 0;
-        const sP = getCanvasCoords(s.pos_x, s.pos_y);
-        const eP = getCanvasCoords(e.pos_x, e.pos_y);
+        const sP = getCanvasCoords(s.posX, s.posY);
+        const eP = getCanvasCoords(e.posX, e.posY);
         const cx = sP.x + (eP.x - sP.x) * progress;
         const cy = sP.y + (eP.y - sP.y) * progress;
         ctx.fillStyle = '#f1c40f';
@@ -1049,35 +1150,14 @@
         ctx.fillStyle = '#000';
         ctx.font = 'bold 10px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(army.value, cx, cy + 3);
-    }
-
-    function gChangeType(t) {
-        sendAction({ type: 'update_node_type_action', payload: { node_id: parseInt(document.getElementById('g-node-id').value), new_type: t } });
-    }
-    function gDispatch() {
-        sendAction({ type: 'send_army_action', payload: { heading_from_id: parseInt(document.getElementById('g-node-id').value), heading_to_id: parseInt(document.getElementById('g-target-id').value), value: 10 } });
-    }
-    function gAlways(m) {
-        sendAction({ type: 'set_always_send_army_action', payload: { from_node_id: parseInt(document.getElementById('g-node-id').value), to_node_id: parseInt(document.getElementById('g-target-id').value), mode: m } });
-    }
-
-    function showGameOverlay(title, sub) {
-        document.getElementById('game-overlay-title').textContent = title;
-        document.getElementById('game-overlay-sub').textContent = sub;
-        document.getElementById('game-overlay').classList.add('visible');
-    }
-    function hideGameOverlay() {
-        document.getElementById('game-overlay').classList.remove('visible');
+        ctx.fillText(army.value.toString(), cx, cy + 3);
     }
 
     function resizeCanvas() {
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
-        renderGame();
     }
     window.addEventListener('resize', resizeCanvas);
-    setTimeout(resizeCanvas, 100);
 </script>
 </body>
 </html>

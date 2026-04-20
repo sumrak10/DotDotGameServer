@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package game;
+import "game/world/nodes/nodes.proto";
+
+option go_package = "OnlineGame/pkg/pb/go/game";
+
+message InputMessage {
+  oneof payload {
+      ActionInputMessage action = 1;
+  }
+}
+
+message ActionInputMessage {
+  oneof payload {
+    SendArmyAction send_army = 1;
+    UpdateNodeTypeAction update_node_type = 2;
+    SetAlwaysSendArmyAction set_always_send_army = 3;
+  }
+}
+
+message SendArmyAction {
+  uint32 value = 1;
+  uint64 heading_from_id = 2;
+  uint64 heading_to_id = 3;
+}
+
+message UpdateNodeTypeAction {
+  uint64 node_id = 1;
+  nodes.NodeType new_type = 2;
+}
+
+message SetAlwaysSendArmyAction {
+  uint64 from_node_id = 1;
+  uint64 to_node_id = 2;
+  bool mode = 3;
+}

@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package game;
+import "game/world/world.proto";
+
+option go_package = "OnlineGame/pkg/pb/go/game";
+
+message OutputMessage {
+  oneof payload {
+    Tick tick = 1;
+    Notification notification = 3;
+    ActionOutputMessage action_output_message = 2;
+  }
+}
+
+message Tick {
+  uint32 match_id = 1;
+  float current_tps = 2;
+  world.World world = 3;
+}
+
+message Notification {
+  string type = 1;
+  string message = 2;
+  uint64 match_id = 3;
+  uint64 player_id = 4;
+  string player_username = 5;
+}
+
+message ActionOutputMessage {
+  string status = 1;
+  string details = 2;
+}

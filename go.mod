@@ -10,6 +10,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.49.0
+	google.golang.org/protobuf v1.36.11
 	gorm.io/gorm v1.31.1
 )
 

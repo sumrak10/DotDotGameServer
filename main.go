@@ -1,11 +1,11 @@
 package main
 
 import (
-	"OnlineGame/config"
-	"OnlineGame/database"
-	"OnlineGame/game/world"
-	"OnlineGame/manager"
-	"OnlineGame/server"
+	"OnlineGame/internal/config"
+	"OnlineGame/internal/database"
+	"OnlineGame/internal/game/world"
+	"OnlineGame/internal/manager"
+	"OnlineGame/internal/server"
 	"fmt"
 	"log"
 	//"net/http"

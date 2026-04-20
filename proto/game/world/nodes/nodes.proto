@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package nodes;
+option go_package = "OnlineGame/pkg/pb/go/game/world/nodes";
+
+enum NodeType {
+  DefaultNodeType = 0;
+  ProductionNodeType = 1;
+  FortressNodeType = 2;
+}
+
+message Node {
+  uint64 id = 1;
+  int32 pos_x = 2;
+  int32 pos_y = 3;
+  uint64 owner_id = 4;
+  NodeType type = 5;
+  uint32 shield = 6;
+  uint32 value = 7;
+  bool is_always_send_army = 8;
+  uint64 always_send_army_to_node_id = 9;
+}
+
+message Army {
+  uint64 id = 1;
+  uint32 pos = 2;
+  uint64 node_edge_id = 3;
+  uint64 heading_from_id = 4;
+  uint64 heading_to_id = 5;
+  uint64 owner_id = 6;
+  uint32 value = 7;
+}
+
+message NodeEdge {
+  uint64 id = 1;
+  uint64 n1_id = 2;
+  uint64 n2_id = 3;
+  uint32 length = 4;
+  repeated Army armies = 5;
+}
