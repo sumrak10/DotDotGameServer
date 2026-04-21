@@ -29,7 +29,7 @@ type World struct {
 }
 
 func (w *World) ToProto() *worldpb.World {
-	protoPlayersStartNodes := make([]*nodespb.Node, w.MaxPlayers)
+	protoPlayersStartNodes := make([]*nodespb.Node, 0, w.MaxPlayers)
 	for _, n := range w.PlayersStartNodes {
 		protoPlayersStartNodes = append(protoPlayersStartNodes, n.ToProto())
 	}
@@ -37,7 +37,7 @@ func (w *World) ToProto() *worldpb.World {
 	for id, n := range w.Nodes {
 		protoNodes[uint32(id)] = n.ToProto()
 	}
-	protoNodeEdges := make([]*nodespb.NodeEdge, len(w.NodeEdges))
+	protoNodeEdges := make([]*nodespb.NodeEdge, 0, len(w.NodeEdges))
 	for _, n := range w.NodeEdges {
 		protoNodeEdges = append(protoNodeEdges, n.ToProto())
 	}

@@ -112,24 +112,25 @@ func (g *Game) run() {
 }
 
 func (g *Game) tick(currentTPS float64) {
-	_playersActivesCounter := g.world.Tick()
-	_deadPlayers := 0
-	var _winnerID uint
-	for playerID, count := range _playersActivesCounter {
-		if count == 0 {
-			g.players[playerID].IsAlive = false
-			_deadPlayers++
+	playersActivesCounter := g.world.Tick()
+	deadPlayers := 0
+	var winnerID uint
+	for playerID, player := range g.players {
+		actives, found := playersActivesCounter[playerID]
+		if !found || actives == 0 {
+			player.IsAlive = false
+			deadPlayers++
 		} else {
-			_winnerID = playerID
+			winnerID = playerID
 		}
 	}
-	if _deadPlayers >= len(g.players)-1 {
-		g.Match.WinnerPlayerID = _winnerID
+	if deadPlayers >= len(g.players)-1 {
+		g.Match.WinnerPlayerID = winnerID
 		g.Stop()
 		return
 	}
 
-	g.broadcastMessage(&gamepb.OutputMessage{
+	tickMessage := &gamepb.OutputMessage{
 		Payload: &gamepb.OutputMessage_Tick{
 			Tick: &gamepb.Tick{
 				MatchId:    uint32(g.Match.ID),
@@ -137,5 +138,6 @@ func (g *Game) tick(currentTPS float64) {
 				World:      g.world.ToProto(),
 			},
 		},
-	})
+	}
+	g.broadcastMessage(tickMessage)
 }

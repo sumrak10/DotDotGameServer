@@ -974,12 +974,13 @@
         };
 
         socket.onmessage = (ev) => {
-            const buffer = new Uint8Array(ev.context);
+            const buffer = new Uint8Array(ev.data);
             handleWsMessage(window.GetProto('game.OutputMessage').decode(buffer));
         };
     }
 
     function handleWsMessage(message) {
+        console.log(message)
         switch (message.payload) {
             case "tick":
                 document.getElementById('g-tps').textContent = Math.trunc(message.tick.currentTps).toString();
