@@ -1,6 +1,8 @@
 package html
 
 import (
+	"OnlineGame/internal/config"
+	"fmt"
 	"html/template"
 	"net/http"
 
@@ -12,18 +14,22 @@ func RegisterHtmlRoutes(r *mux.Router) {
 }
 
 func Index(w http.ResponseWriter, r *http.Request) {
-	data := struct {
-		Name string
+	context := struct {
+		BaseURL string
 	}{
-		Name: "Пользователь",
+		BaseURL: config.Server().GetAddress(),
 	}
-
-	tmpl, _ := template.ParseFiles("templates/index.html")
-	err := tmpl.Execute(w, data)
+	var tmplIndex, err = template.ParseFiles("templates/index.html")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if tmplIndex == nil {
+		fmt.Println("tmplIndex is nil")
+		return
+	}
+	err = tmplIndex.Execute(w, context)
 	if err != nil {
 		return
 	}
-}
-
-func JsPb(w http.ResponseWriter, r *http.Request) {
 }

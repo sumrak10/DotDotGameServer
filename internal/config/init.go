@@ -4,4 +4,5 @@ func InitAll() {
 	Database()
 	JWT()
 	Game()
+	Server()
 }

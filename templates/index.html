@@ -624,7 +624,7 @@
 
 <script src="/static/protobuf.min.js"></script>
 <script>
-    const BASE = 'localhost:8080';
+    const BASE = '{{ .BaseURL }}';
     let token = localStorage.getItem('token');
     let myUsername = null;
     let myUserId = null;
@@ -974,7 +974,7 @@
         };
 
         socket.onmessage = (ev) => {
-            const buffer = new Uint8Array(ev.data);
+            const buffer = new Uint8Array(ev.context);
             handleWsMessage(window.GetProto('game.OutputMessage').decode(buffer));
         };
     }
@@ -1008,53 +1008,53 @@
         }
     }
 
-    function handleNotification(data) {
-        switch (data.type) {
+    function handleNotification(context) {
+        switch (context.type) {
             case 'match_lobby_join':
-                logEvent(`${data.playerUsername} вошёл в лобби матча #${data.matchId}`, 'var(--success)');
-                addLobbyLog(`${data.playerUsername} присоединился`, 'log-join');
-                if (!currentLobbyPlayers.find(p => p.id === data.playerId)) {
-                    currentLobbyPlayers.push({ id: data.playerId, username: data.playerUsername });
+                logEvent(`${context.playerUsername} вошёл в лобби матча #${context.matchId}`, 'var(--success)');
+                addLobbyLog(`${context.playerUsername} присоединился`, 'log-join');
+                if (!currentLobbyPlayers.find(p => p.id === context.playerId)) {
+                    currentLobbyPlayers.push({ id: context.playerId, username: context.playerUsername });
                     renderLobbyPlayers();
                 }
-                toast(`${data.playerUsername} вошёл в лобби`, 'info');
+                toast(`${context.playerUsername} вошёл в лобби`, 'info');
                 break;
 
             case 'match_lobby_leave':
-                logEvent(`${data.playerUsername} покинул лобби матча #${data.matchId}`, 'var(--warning)');
-                addLobbyLog(`${data.playerUsername} вышел`, 'log-leave');
-                currentLobbyPlayers = currentLobbyPlayers.filter(p => p.id !== data.playerId);
+                logEvent(`${context.playerUsername} покинул лобби матча #${context.matchId}`, 'var(--warning)');
+                addLobbyLog(`${context.playerUsername} вышел`, 'log-leave');
+                currentLobbyPlayers = currentLobbyPlayers.filter(p => p.id !== context.playerId);
                 renderLobbyPlayers();
-                toast(`${data.playerUsername} покинул лобби`, 'warning');
+                toast(`${context.playerUsername} покинул лобби`, 'warning');
                 break;
 
             case 'match_started':
-                logEvent(`Матч #${data.matchId} начался!`, 'var(--success)');
+                logEvent(`Матч #${context.matchId} начался!`, 'var(--success)');
                 toast('Матч начался!', 'success');
                 showScreen('game');
-                document.getElementById('g-match-id').textContent = data.matchId;
+                document.getElementById('g-match-id').textContent = context.matchId;
                 hideGameOverlay();
                 break;
 
             case 'match_ended':
                 stopAnimation();
-                logEvent(`Матч #${data.matchId} завершён`, 'var(--muted)');
+                logEvent(`Матч #${context.matchId} завершён`, 'var(--muted)');
                 toast('Матч завершён', 'info');
-                showGameOverlay('Матч завершён', `Матч #${data.matchId} окончен`);
+                showGameOverlay('Матч завершён', `Матч #${context.matchId} окончен`);
                 break;
 
             case 'player_disconnected':
-                logEvent(`Игрок #${data.playerId} отключился от матча #${data.matchId}`, 'var(--danger)');
+                logEvent(`Игрок #${context.playerId} отключился от матча #${context.matchId}`, 'var(--danger)');
                 toast(`Игрок отключился`, 'warning');
                 break;
 
             case 'player_reconnected':
-                logEvent(`Игрок #${data.playerId} переподключился к матчу #${data.matchId}`, 'var(--success)');
+                logEvent(`Игрок #${context.playerId} переподключился к матчу #${context.matchId}`, 'var(--success)');
                 toast(`Игрок переподключился`, 'info');
                 break;
 
             default:
-                console.log('WS (Unexpected Notification type):', data);
+                console.log('WS (Unexpected Notification type):', context);
         }
     }
 
