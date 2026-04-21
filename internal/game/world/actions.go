@@ -4,6 +4,7 @@ import (
 	"OnlineGame/internal/game/world/nodes"
 	nodespb "OnlineGame/pkg/pb/go/game/world/nodes"
 	"errors"
+	"fmt"
 )
 
 func (w *World) SendArmy(playerID uint, headingFromID nodes.NodeID, headingToID nodes.NodeID, value uint) error {
@@ -41,32 +42,52 @@ func (w *World) SendArmy(playerID uint, headingFromID nodes.NodeID, headingToID 
 	return nil
 }
 
-func (w *World) UpdateNodeType(playerID uint, nodeID nodes.NodeID, NewType nodespb.NodeType) error {
+func (w *World) UpdateNodeType(playerID uint, nodeID nodes.NodeID, newType nodespb.NodeType) error {
 	node := w.Nodes[nodeID]
+	if node == nil {
+		return errors.New(fmt.Sprintf("node#%d not found", nodeID))
+	}
 	if node.OwnerID != playerID {
 		return errors.New("player can't change type not own node")
 	}
-	if node.Value < nodes.NodeTypePropsMap[NewType].TransformCost {
+	nodeTypeProps, found := nodes.NodeTypePropsMap[newType]
+	if !found {
+		return errors.New(fmt.Sprintf("for type %d not supported", newType))
+	}
+	transformCost := nodeTypeProps.TransformCost
+	if transformCost == 0 {
+		return errors.New("cant transform to this type")
+	}
+	if node.Value < transformCost {
 		return errors.New("new type is not enough to transform cost")
 	}
-	node.Type = NewType
-	node.Value -= nodes.NodeTypePropsMap[NewType].TransformCost
-	if node.Shield > nodes.NodeTypePropsMap[NewType].MaxShield {
-		node.Shield = nodes.NodeTypePropsMap[NewType].MaxShield
+
+	node.Value -= transformCost
+	if node.Shield > nodeTypeProps.MaxShield {
+		node.Shield = nodeTypeProps.MaxShield
 	}
+	node.Type = newType
 	node.ResetTicks()
+
 	return nil
 }
 
 func (w *World) SetAlwaysSendArmy(playerID uint, fromNodeID nodes.NodeID, toNodeID nodes.NodeID, mode bool) error {
-	node := w.Nodes[fromNodeID]
-	if node.OwnerID != playerID {
+	fromNode := w.Nodes[fromNodeID]
+	if fromNode == nil {
+		return errors.New(fmt.Sprintf("node#%d not found", fromNodeID))
+	}
+	toNode := w.Nodes[toNodeID]
+	if toNode == nil {
+		return errors.New(fmt.Sprintf("node#%d not found", toNodeID))
+	}
+	if fromNode.OwnerID != playerID {
 		return errors.New("player can't set AlwaysSendArmy not own node")
 	}
 	if fromNodeID == toNodeID {
 		return errors.New("can't send army to same node from which it was originally sent ")
 	}
-	node.IsAlwaysSendArmy = mode
-	node.AlwaysSendArmyToNodeID = toNodeID
+	fromNode.IsAlwaysSendArmy = mode
+	fromNode.AlwaysSendArmyToNodeID = toNode.ID
 	return nil
 }

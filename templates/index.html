@@ -437,9 +437,43 @@
         .toast.success { border-left: 3px solid var(--success); }
         .toast.error { border-left: 3px solid var(--danger); }
         .toast.warning { border-left: 3px solid var(--warning); }
+
         @keyframes slideIn {
             from { opacity: 0; transform: translateX(20px); }
             to { opacity: 1; transform: translateX(0); }
+        }
+        #gameCanvas { width: 100%; height: 420px; display: block; cursor: crosshair; border-radius: var(--border-radius-lg); background: #0d1117; }
+        #ctx-menu {
+            position: absolute; display: none; z-index: 100;
+            background: var(--color-background-primary);
+            border: 0.5px solid var(--color-border-secondary);
+            border-radius: var(--border-radius-md);
+            padding: 4px 0; min-width: 180px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            font-size: 13px;
+        }
+        .ctx-item {
+            padding: 8px 16px; cursor: pointer;
+            color: var(--color-text-primary);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .ctx-item:hover { background: var(--color-background-secondary); }
+        .ctx-item .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .ctx-sep { height: 0.5px; background: var(--color-border-tertiary); margin: 4px 0; }
+        #status-bar {
+            margin-top: 6px; font-size: 12px;
+            color: var(--color-text-secondary);
+            min-height: 18px; padding: 0 4px;
+        }
+        #hint-bar {
+            display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap;
+        }
+        .hint { font-size: 11px; color: var(--color-text-tertiary); display: flex; align-items: center; gap: 4px; }
+        .hint kbd {
+            background: var(--color-background-secondary);
+            border: 0.5px solid var(--color-border-secondary);
+            border-radius: 4px; padding: 1px 5px; font-size: 10px;
+            color: var(--color-text-secondary); font-family: var(--font-mono);
         }
     </style>
 </head>
@@ -560,19 +594,24 @@
         <div class="game-stat">TPS: <span id="g-tps">-</span></div>
         <div class="game-divider"></div>
         <div class="game-controls">
-            <span class="ctrl-label">Узел:</span>
-            <input type="number" class="ctrl-input" id="g-node-id" value="1">
-            <span class="ctrl-label">→</span>
-            <input type="number" class="ctrl-input" id="g-target-id" value="2">
-            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="actionUpdateNodeType(1)">Производство</button>
-            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="actionUpdateNodeType(2)">Крепость</button>
-            <button class="btn btn-primary" style="padding:4px 10px;font-size:11px;" onclick="actionSendArmy()">Послать армию</button>
-            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="actionSetAlwaysSendArmy(true)">Auto ON</button>
-            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="actionSetAlwaysSendArmy(false)">Auto OFF</button>
             <button class="btn btn-danger" style="padding:4px 10px;font-size:11px;margin-left:8px;" onclick="goToMatches()">← Выйти</button>
         </div>
     </div>
-    <canvas id="gameCanvas"></canvas>
+    <div style="position: relative;">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ctx-menu">
+            <div class="ctx-item" onclick="actionUpdateNodeTypeToProduction()"><span class="dot" style="background:#f59e0b;border:1.5px solid #fbbf24"></span>Production node</div>
+            <div class="ctx-item" onclick="actionUpdateNodeTypeToFortress()"><span class="dot" style="background:#8b5cf6;border:1.5px solid #a78bfa"></span>Fortress node</div>
+        </div>
+    </div>
+    <div id="status-bar">Кликните по своей ноде, чтобы выбрать её</div>
+    <div id="hint-bar">
+        <div class="hint"><kbd>Click node</kbd> Выбрать ноду</div>
+        <div class="hint"><kbd>Click node → Click node</kbd> Отправить армию</div>
+        <div class="hint"><kbd>Press LMB and mouse up under edge</kbd> Always send</div>
+        <div class="hint"><kbd>RMB Click</kbd> Сменить тип ноды </div>
+        <div class="hint"><kbd>Esc</kbd> Снять выделение</div>
+    </div>
     <div id="game-overlay">
         <div id="game-overlay-title">Матч завершён</div>
         <div id="game-overlay-sub">Игра окончена</div>
@@ -615,6 +654,7 @@
                 "game/world/nodes/nodes.proto",
             ])
             window.GetProto = (path) => root.lookupType(path);
+            window.GetProtoEnum = (path) => root.lookupEnum(path);
             console.log("Доступные типы:", root);
         } catch (e) {
             console.error(e);
@@ -942,17 +982,25 @@
     function handleWsMessage(message) {
         switch (message.payload) {
             case "tick":
-                document.getElementById('g-tps').textContent = message.tick.currentTps.toString();
-                world = message.tick.world
-                renderGame();
+                document.getElementById('g-tps').textContent = Math.trunc(message.tick.currentTps).toString();
+                world = message.tick.world;
+                if (animationId === null) {
+                    startAnimation();
+                }
                 break;
 
             case "notification":
                 handleNotification(message.notification)
                 break;
 
-            case "action_output_message":
-                console.log('WS (ACTION_OUTPUT_MESSAGE):', message.action_output_message)
+            case "actionOutputMessage":
+                if (message.actionOutputMessage.status === "success") {
+                    toast(message.actionOutputMessage.details)
+                } else if (message.actionOutputMessage.status === "error") {
+                    toast(message.actionOutputMessage.details)
+                } else {
+                    console.log('WS (Unexpected actionOutputMessage):', message.actionOutputMessage);
+                }
                 break;
 
             default:
@@ -984,12 +1032,12 @@
                 logEvent(`Матч #${data.matchId} начался!`, 'var(--success)');
                 toast('Матч начался!', 'success');
                 showScreen('game');
-                resizeCanvas();
                 document.getElementById('g-match-id').textContent = data.matchId;
                 hideGameOverlay();
                 break;
 
             case 'match_ended':
+                stopAnimation();
                 logEvent(`Матч #${data.matchId} завершён`, 'var(--muted)');
                 toast('Матч завершён', 'info');
                 showGameOverlay('Матч завершён', `Матч #${data.matchId} окончен`);
@@ -1011,65 +1059,65 @@
     }
 
     // ── Player actions ───────────────────────────────────────────────────────
-    function actionSendArmy() {
+    function networkActionSendArmy(n1Id, n2Id, val) {
         if (socket && socket.readyState === WebSocket.OPEN) {
             const InputMessage = window.GetProto("game.InputMessage");
             const message = {
                 action: {
                     sendArmy: {
-                        headingFromId: parseInt(document.getElementById('g-node-id').value),
-                        headingToId: parseInt(document.getElementById('g-target-id').value),
-                        value: 10
+                        headingFromId: n1Id,
+                        headingToId: n2Id,
+                        value: val
                     }
                 }
             }
+            console.log(message)
             const errMsg = InputMessage.verify(message);
             if (errMsg) throw new Error(`Protobuf verify error: ${errMsg}`);
             const buffer = InputMessage.encode(InputMessage.create(message)).finish();
-            console.log(buffer)
             socket.send(buffer);
         } else {
             toast('WebSocket не подключён', 'error');
         }
     }
 
-    function actionUpdateNodeType(t) {
+    function networkActionUpdateNodeType(nodeID, type) {
         if (socket && socket.readyState === WebSocket.OPEN) {
             const InputMessage = window.GetProto("game.InputMessage");
             const message = {
                 action: {
                     updateNodeType: {
-                        nodeId: parseInt(document.getElementById('g-node-id').value),
-                        newType: t
+                        nodeId: nodeID,
+                        newType: type
                     }
                 }
             }
+            console.log(message)
             const errMsg = InputMessage.verify(message);
             if (errMsg) throw new Error(`Protobuf verify error: ${errMsg}`);
             const buffer = InputMessage.encode(InputMessage.create(message)).finish();
-            console.log(buffer)
             socket.send(buffer);
         } else {
             toast('WebSocket не подключён', 'error');
         }
     }
 
-    function actionSetAlwaysSendArmy(m) {
+    function networkActionSetAlwaysSendArmy(n1Id, n2Id, m) {
         if (socket && socket.readyState === WebSocket.OPEN) {
             const InputMessage = window.GetProto("game.InputMessage");
             const message = {
                 action: {
                     setAlwaysSendArmy: {
-                        fromNodeId: parseInt(document.getElementById('g-node-id').value),
-                        toNodeId: parseInt(document.getElementById('g-target-id').value),
+                        fromNodeId: n1Id,
+                        toNodeId: n2Id,
                         mode: m
                     }
                 }
             }
+            console.log(message)
             const errMsg = InputMessage.verify(message);
             if (errMsg) throw new Error(`Protobuf verify error: ${errMsg}`);
             const buffer = InputMessage.encode(InputMessage.create(message)).finish();
-            console.log(buffer)
             socket.send(buffer);
         } else {
             toast('WebSocket не подключён', 'error');
@@ -1080,77 +1128,466 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     let world = null;
-    const NODE_RADIUS = 30;
-    const SCALE = 200;
-    const OFFSET = 100;
+    const NODE_RADIUS = 10;
+    let scale = 2;
+    let offset_x = 100;
+    let offset_y = 100;
 
-    function getCanvasCoords(x, y) {
-        return { x: x * SCALE + OFFSET, y: y * SCALE + OFFSET };
+
+    let selectedNodeId = null;
+    let pressedNodeId = null;
+    let hoveredNodeId = null;
+    let hoveredEdgeId = null;
+    let contextNodeId = null;
+    let animFrame = 0;
+    let animationId = null;
+
+    // === Entry ===
+    function startAnimation() {
+        if (animationId !== null) return;
+        resizeCanvas();
+        console.log("animation rendering start")
+        function loop() {
+            animFrame++;
+            renderGame();
+            animationId = requestAnimationFrame(loop);
+        }
+        animationId = requestAnimationFrame(loop);
     }
 
+    function stopAnimation() {
+        console.log("animation rendering stop")
+        if (animationId !== null) {
+            animFrame = 0;
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+    }
+
+    // === Map move ===
+    let mapMovingIsDragging = false;
+    let mapMovingLastMouseX = 0;
+    let mapMovingLastMouseY = 0;
+
+    window.addEventListener('wheel', (e) => {
+        scale += e.deltaY / 500
+        if (scale < 1) {
+            scale = 1
+        } else if (scale > 5) {
+            scale = 5
+        }
+    });
+
+    canvas.addEventListener('mousedown', e => {
+        if (e.button === 1) {
+            mapMovingIsDragging = true;
+            const pos = getPos(e);
+            mapMovingLastMouseX = pos.x;
+            mapMovingLastMouseY = pos.y;
+            canvas.style.cursor = 'grabbing';
+            e.preventDefault();
+        }
+    });
+
+    window.addEventListener('mousemove', e => {
+        if (!mapMovingIsDragging) return;
+        const pos = getPos(e);
+        const dx = pos.x - mapMovingLastMouseX;
+        const dy = pos.y - mapMovingLastMouseY;
+        offset_x += dx;
+        offset_y += dy;
+        mapMovingLastMouseX = pos.x;
+        mapMovingLastMouseY = pos.y;
+    });
+
+    window.addEventListener('mouseup', e => {
+        if (e.button === 1) {
+            mapMovingIsDragging = false;
+            canvas.style.cursor = 'default';
+        }
+    });
+
+    // === Rendering ===
     function renderGame() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawNodeEdges(world.nodes, world.nodeEdges)
-        drawNodes(world.nodes)
+        drawGrid();
+        drawEdges(world);
+        drawNodes(world.nodes);
+    }
+
+    function drawGrid() {
+        ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < canvas.width; x += 40) {
+            ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x, canvas.height); ctx.stroke();
+        }
+        for (let y = 0; y < canvas.height; y += 40) {
+            ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width, y); ctx.stroke();
+        }
+    }
+
+    function nodeColor(node) {
+        if (node.ownerId === 1) return { fill:'#1e40af', glow:'#3b82f6', stroke:'#60a5fa' };
+        if (node.ownerId === 2) return { fill:'#991b1b', glow:'#ef4444', stroke:'#f87171' };
+        return { fill:'#1f2937', glow:'#6b7280', stroke:'#9ca3af' };
+    }
+
+    function typeAccent(type) {
+        if (type === 1) return '#f59e0b'; // production
+        if (type === 2) return '#8b5cf6'; // fortress
+        return null;
     }
 
     function drawNodes(nodes) {
         Object.values(nodes).forEach(node => {
             const p = getCanvasCoords(node.posX, node.posY);
-            ctx.fillStyle = node.ownerId === 1 ? '#3498db' : (node.ownerId === 0 ? '#666' : '#e74c3c');
+            const col = nodeColor(node);
+            const isSelected = node.id === selectedNodeId;
+            const isHovered = node.id === hoveredNodeId;
+            const accent = typeAccent(node.type);
+            const r = NODE_RADIUS * scale;
+
+            // Outer glow for selected / hovered
+            if (isSelected) {
+                const grad = ctx.createRadialGradient(p.x, p.y, r*0.8, p.x, p.y, r*2);
+                grad.addColorStop(0, col.glow + '55');
+                grad.addColorStop(1, col.glow + '00');
+                ctx.beginPath(); ctx.arc(p.x, p.y, r*2, 0, Math.PI*2);
+                ctx.fillStyle = grad; ctx.fill();
+            } else if (isHovered) {
+                ctx.beginPath(); ctx.arc(p.x, p.y, r+6, 0, Math.PI*2);
+                ctx.fillStyle = col.glow + '22'; ctx.fill();
+            }
+
+            // alwaysSend ring (animated dashes)
+            if (node.isAlwaysSendArmy) {
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(animFrame * 0.012);
+                ctx.beginPath();
+                ctx.arc(0, 0, r+8, 0, Math.PI*2);
+                ctx.strokeStyle = col.stroke;
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.restore();
+            }
+
+            // Type accent ring
+            if (accent) {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, r+4, 0, Math.PI*2);
+                ctx.strokeStyle = accent + '99';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+            }
+
+            // Main circle body
+            const bodyGrad = ctx.createRadialGradient(p.x - r*0.25, p.y - r*0.25, r*0.1, p.x, p.y, r);
+            bodyGrad.addColorStop(0, col.glow + 'cc');
+            bodyGrad.addColorStop(1, col.fill);
             ctx.beginPath();
-            ctx.arc(p.x, p.y, NODE_RADIUS, 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+            ctx.fillStyle = bodyGrad;
             ctx.fill();
-            ctx.strokeStyle = node.type === 0 ? '#fff' : '#ffa500';
-            ctx.lineWidth = node.isAlwaysSendArmy ? 4 : 1;
+
+            // Border
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+            ctx.strokeStyle = isSelected ? '#fff' : col.stroke;
+            ctx.lineWidth = isSelected ? 2.5 : 1.5;
             ctx.stroke();
-            ctx.fillStyle = '#fff';
-            ctx.font = 'bold 14px Arial';
+
+            // Shield arc (top-left)
+            if (node.shield > 0) {
+                const shieldFrac = Math.min(node.shield / 10, 1);
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, r+2, -Math.PI*0.9, -Math.PI*0.9 + shieldFrac * Math.PI * 2 * 0.6);
+                ctx.strokeStyle = '#22d3ee';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+            }
+
+            // Node ID (small, top)
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
+            ctx.font = '10px var(--font-mono, monospace)';
             ctx.textAlign = 'center';
-            ctx.fillText(node.value, p.x, p.y + 5);
-            ctx.font = '10px Arial';
-            ctx.fillText(`SHD:${node.shield}`, p.x, p.y + 20);
-            ctx.fillStyle = '#aaa';
-            ctx.fillText(`#${node.id}`, p.x, p.y - 18);
+            ctx.fillText('#' + node.id, p.x, p.y - r - 6);
+
+            // Value (center, large)
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 15px var(--font-sans, sans-serif)';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(node.value, p.x, p.y + 1);
+
+            // Shield text (bottom)
+            if (node.shield > 0) {
+                ctx.fillStyle = '#22d3ee';
+                ctx.font = '9px var(--font-sans, sans-serif)';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'alphabetic';
+                ctx.fillText('🛡 ' + node.shield, p.x, p.y + r + 12);
+            }
+
+            ctx.textBaseline = 'alphabetic';
         });
     }
 
-    function drawNodeEdges(nodes, nodeEdges) {
-        ctx.strokeStyle = '#333';
-        ctx.lineWidth = 2;
-        nodeEdges.forEach(edge => {
-            let n1 = nodes[edge.n1Id];
-            let n2 = nodes[edge.n2Id];
-            if (!n1 || !n2) return;
-            let p1 = getCanvasCoords(n1.posX, n1.posY);
-            let p2 = getCanvasCoords(n2.posX, n2.posY);
+    function drawEdges(w) {
+        w.nodeEdges.forEach(edge => {
+            const n1 = w.nodes[edge.n1Id], n2 = w.nodes[edge.n2Id];
+            if (!n1||!n2) return;
+            const p1 = getCanvasCoords(n1.posX, n1.posY);
+            const p2 = getCanvasCoords(n2.posX, n2.posY);
+
+            // Direction from center
+            const dx = p2.x - p1.x, dy = p2.y - p1.y;
+            const len = Math.sqrt(dx*dx+dy*dy);
+            const nx = dx/len, ny = dy/len;
+            const sx = p1.x + nx*NODE_RADIUS, sy = p1.y + ny*NODE_RADIUS;
+            const ex = p2.x - nx*NODE_RADIUS, ey = p2.y - ny*NODE_RADIUS;
+
+            const withPressedNodeAndHoveredEdge = pressedNodeId && hoveredEdgeId === edge.id && (edge.n1Id === pressedNodeId || edge.n2Id === pressedNodeId);
+
             ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(ex, ey);
+            if (withPressedNodeAndHoveredEdge) {
+                ctx.strokeStyle = '#facc15aa';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([6, 4]);
+                // ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                // ctx.lineWidth = 1.5;
+                // ctx.setLineDash([]);
+            } else {
+                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([]);
+            }
             ctx.stroke();
-            edge.armies.forEach(army => drawArmy(nodes, army));
+            ctx.setLineDash([]);
+
+            edge.armies.forEach(army => drawArmy(w.nodes, army));
         });
     }
 
     function drawArmy(nodes, army) {
-        const s = nodes[army.headingFromId];
-        const e = nodes[army.headingToId];
-        if (!s || !e) return;
+        const s = nodes[army.headingFromId], e = nodes[army.headingToId];
+        if (!s||!e) return;
         const dx = e.posX - s.posX, dy = e.posY - s.posY;
-        const dist = Math.sqrt(dx*dx + dy*dy);
+        const dist = Math.sqrt(dx*dx+dy*dy);
         let progress = dist > 0 ? Math.min(Math.max((army.pos / 10000) / dist, 0), 1) : 0;
         const sP = getCanvasCoords(s.posX, s.posY);
         const eP = getCanvasCoords(e.posX, e.posY);
         const cx = sP.x + (eP.x - sP.x) * progress;
         const cy = sP.y + (eP.y - sP.y) * progress;
-        ctx.fillStyle = '#f1c40f';
+
+        // Direction arrow
+        const ang = Math.atan2(eP.y - sP.y, eP.x - sP.x);
+
+        // Glow
+        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 14);
+        g.addColorStop(0, 'rgba(251,191,36,0.6)');
+        g.addColorStop(1, 'rgba(251,191,36,0)');
+        ctx.beginPath(); ctx.arc(cx, cy, 14, 0, Math.PI*2);
+        ctx.fillStyle = g; ctx.fill();
+
+        // Body
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(ang);
         ctx.beginPath();
-        ctx.arc(cx, cy, 8, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#000';
-        ctx.font = 'bold 10px Arial';
+        ctx.moveTo(10, 0); ctx.lineTo(-8, 6); ctx.lineTo(-4, 0); ctx.lineTo(-8, -6); ctx.closePath();
+        ctx.fillStyle = '#fbbf24';
+        ctx.strokeStyle = '#92400e';
+        ctx.lineWidth = 1;
+        ctx.fill(); ctx.stroke();
+        ctx.restore();
+
+        // Count
+        ctx.fillStyle = '#1c1200';
+        ctx.font = 'bold 9px var(--font-sans, sans-serif)';
         ctx.textAlign = 'center';
-        ctx.fillText(army.value.toString(), cx, cy + 3);
+        ctx.textBaseline = 'middle';
+        ctx.fillText(army.value, cx, cy);
+        ctx.textBaseline = 'alphabetic';
+    }
+
+    // === Mouse handling ===
+    canvas.addEventListener('mousemove', e => {
+        const pos = getPos(e);
+        const node = getNodeAt(pos.x, pos.y);
+        hoveredNodeId = node ? node.id : null;
+        const edge = getEdgeAt(pos.x, pos.y);
+        hoveredEdgeId = edge && pressedNodeId ? edge.id : null;
+        canvas.style.cursor = (hoveredNodeId || hoveredEdgeId) ? 'pointer' : 'crosshair';
+    });
+
+    canvas.addEventListener('click', e => {
+        hideCtxMenu();
+        const pos = getPos(e);
+        const node = getNodeAt(pos.x, pos.y);
+        if (node) {
+            if (selectedNodeId === null) {
+                if (node.ownerId === myUserId) {
+                    console.log(node);
+                    selectedNodeId = node.id;
+                    setStatus(`Нода #${node.id} выбрана — кликните на цель для отправки армии`);
+                } else {
+                    setStatus(`Это чужая нода — выберите свою`);
+                }
+            } else if (node.id === selectedNodeId) {
+                selectedNodeId = null;
+                setStatus(`Выделение снято`);
+            } else {
+                actionSendArmy(selectedNodeId, node.id);
+                selectedNodeId = null;
+            }
+            return;
+        }
+        selectedNodeId = null;
+        setStatus(`Кликните по своей ноде, чтобы выбрать её`);
+    });
+
+    canvas.addEventListener('mousedown', e => {
+        if (e.button !== 0) { return }
+        hideCtxMenu();
+        const pos = getPos(e);
+        const node = getNodeAt(pos.x, pos.y);
+        if (node) {
+            if (pressedNodeId === null) {
+                pressedNodeId = node.id;
+                console.log(`pressed node#${pressedNodeId} and ...`)
+            }
+        }
+    });
+
+    canvas.addEventListener('mouseup', e => {
+        if (e.button !== 0) { return }
+        hideCtxMenu();
+        const pos = getPos(e);
+        const edge = getEdgeAt(pos.x, pos.y);
+        if (edge) {
+            if (pressedNodeId !== null && hoveredEdgeId === edge.id) {
+                console.log(`... and released near edge#${edge.id}`)
+                if (pressedNodeId === edge.n1Id) {
+                    otherNodeId = edge.n2Id
+                } else {
+                    otherNodeId = edge.n1Id
+                }
+                if (otherNodeId) {
+                    const node = world.nodes[pressedNodeId]
+                    if (node) {
+                        actionSetAlwaysSendArmy(pressedNodeId, otherNodeId, !node.isAlwaysSendArmy)
+                    }
+                }
+            }
+        }
+        pressedNodeId = null;
+    });
+
+    canvas.addEventListener('dblclick', e => {
+        const pos = getPos(e);
+        const node = getNodeAt(pos.x, pos.y);
+        if (!node) return;
+        if (node.ownerId === myUserId && node.isAlwaysSendArmy) {
+            actionSetAlwaysSendArmy(node.id, 0, false);
+        }
+    });
+
+    canvas.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        hideCtxMenu();
+        const pos = getPos(e);
+        const node = getNodeAt(pos.x, pos.y);
+        if (node && node.ownerId === myUserId) {
+            contextNodeId = node.id;
+            const menu = document.getElementById('ctx-menu');
+            const wrapper = canvas.parentElement;
+            const wr = wrapper.getBoundingClientRect();
+            const cr = canvas.getBoundingClientRect();
+            menu.style.left = (e.clientX - wr.left + 4) + 'px';
+            menu.style.top  = (e.clientY - wr.top + 4) + 'px';
+            menu.style.display = 'block';
+        }
+    });
+
+    document.addEventListener('click', () => hideCtxMenu());
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { selectedNodeId = null; hideCtxMenu(); }});
+
+    function hideCtxMenu() { document.getElementById('ctx-menu').style.display = 'none'; }
+
+    function actionUpdateNodeTypeToProduction() {
+        const NodeType = window.GetProtoEnum("nodes.NodeType");
+        hideCtxMenu();
+        networkActionUpdateNodeType(contextNodeId, NodeType.values.ProductionNodeType);
+        setStatus(`Нода #${contextNodeId} → тип: ${NodeType.values.ProductionNodeType}`);
+    }
+
+    function actionUpdateNodeTypeToFortress() {
+        const NodeType = window.GetProtoEnum("nodes.NodeType");
+        console.log(NodeType);
+        hideCtxMenu();
+        networkActionUpdateNodeType(contextNodeId, NodeType.values.FortressNodeType);
+        setStatus(`Нода #${contextNodeId} → тип: ${NodeType.values.FortressNodeType}`);
+    }
+
+    function actionSetAlwaysSendArmy(fromId, toId, mode) {
+        hideCtxMenu();
+        networkActionSetAlwaysSendArmy(fromId, toId, mode)
+        setStatus(`Always send #${fromId} to #${toId}: ${mode ? 'ВКЛ' : 'ВЫКЛ'}`);
+    }
+
+    function actionSendArmy(fromId, toId) {
+        const fromNode = world.nodes[fromId]
+        const toNode = world.nodes[toId];
+        networkActionSendArmy(fromId, toId, fromNode.value)
+        setStatus(`Армия отправлена: #${fromId} → #${toId}`);
+    }
+
+
+    // === Utils ===
+    function getPos(e) {
+        const r = canvas.getBoundingClientRect();
+        return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+
+    function getCanvasCoords(x, y) {
+        return { x: x * scale * 100 + offset_x, y: y * scale * 100 + offset_y };
+    }
+
+    function getNodeAt(px, py) {
+        for (const node of Object.values(world.nodes)) {
+            const p = getCanvasCoords(node.posX, node.posY);
+            const dx = px - p.x, dy = py - p.y;
+            if (Math.sqrt(dx*dx + dy*dy) <= NODE_RADIUS + 4) return node;
+        }
+        return null;
+    }
+
+    function getEdgeAt(px, py) {
+        for (const edge of world.nodeEdges) {
+            const n1 = world.nodes[edge.n1Id], n2 = world.nodes[edge.n2Id];
+            if (!n1||!n2) continue;
+            const p1 = getCanvasCoords(n1.posX, n1.posY);
+            const p2 = getCanvasCoords(n2.posX, n2.posY);
+            const dx = p2.x - p1.x, dy = p2.y - p1.y;
+            const len = Math.sqrt(dx*dx+dy*dy);
+            if (len < 1) continue;
+            const t = ((px-p1.x)*dx + (py-p1.y)*dy) / (len*len);
+            if (t < 0.15 || t > 0.85) continue;
+            const projX = p1.x + t*dx, projY = p1.y + t*dy;
+            const dist = Math.sqrt((px-projX)**2 + (py-projY)**2);
+            if (dist < 10) return edge;
+        }
+        return null;
+    }
+
+    function setStatus(msg) {
+        document.getElementById('status-bar').textContent = msg;
     }
 
     function resizeCanvas() {

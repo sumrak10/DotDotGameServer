@@ -11,7 +11,7 @@ type NodeTypeProps struct {
 
 var NodeTypePropsMap = map[nodespb.NodeType]NodeTypeProps{
 	nodespb.NodeType_DefaultNodeType: {
-		TransformCost:    0,
+		TransformCost:    0, // can't transform to this type
 		ProduceSpeed:     30,
 		MaxShield:        5,
 		ShieldRegenSpeed: 30,

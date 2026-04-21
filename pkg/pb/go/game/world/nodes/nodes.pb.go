@@ -26,7 +26,7 @@ type NodeType int32
 const (
 	NodeType_DefaultNodeType    NodeType = 0
 	NodeType_ProductionNodeType NodeType = 1
-	NodeType_FortressNodeType   NodeType = 3
+	NodeType_FortressNodeType   NodeType = 2
 )
 
 // Enum value maps for NodeType.
@@ -34,12 +34,12 @@ var (
 	NodeType_name = map[int32]string{
 		0: "DefaultNodeType",
 		1: "ProductionNodeType",
-		3: "FortressNodeType",
+		2: "FortressNodeType",
 	}
 	NodeType_value = map[string]int32{
 		"DefaultNodeType":    0,
 		"ProductionNodeType": 1,
-		"FortressNodeType":   3,
+		"FortressNodeType":   2,
 	}
 )
 
@@ -379,7 +379,7 @@ const file_game_world_nodes_nodes_proto_rawDesc = "" +
 	"\bNodeType\x12\x13\n" +
 	"\x0fDefaultNodeType\x10\x00\x12\x16\n" +
 	"\x12ProductionNodeType\x10\x01\x12\x14\n" +
-	"\x10FortressNodeType\x10\x03B'Z%OnlineGame/pkg/pb/go/game/world/nodesb\x06proto3"
+	"\x10FortressNodeType\x10\x02B'Z%OnlineGame/pkg/pb/go/game/world/nodesb\x06proto3"
 
 var (
 	file_game_world_nodes_nodes_proto_rawDescOnce sync.Once
