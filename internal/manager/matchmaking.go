@@ -9,13 +9,13 @@ import (
 )
 
 type GameView struct {
-	MatchID    uint                 `json:"id"`
-	CreatedAt  time.Time            `json:"created_at"`
-	Players    []*database.UserView `json:"players"`
-	Admin      *database.UserView   `json:"owner"`
-	MinPlayers uint8                `json:"min_players"`
-	MaxPlayers uint8                `json:"max_players"`
-	Status     string               `json:"status"`
+	MatchID       uint                 `json:"id"`
+	CreatedAt     time.Time            `json:"created_at"`
+	Players       []*database.UserView `json:"players"`
+	OwnerPlayerID uint                 `json:"owner_player_id"`
+	MinPlayers    uint8                `json:"min_players"`
+	MaxPlayers    uint8                `json:"max_players"`
+	Status        string               `json:"status"`
 }
 
 func (m *Manager) GetAllMatches(clientID uint) []*GameView {
@@ -25,25 +25,25 @@ func (m *Manager) GetAllMatches(clientID uint) []*GameView {
 		_game, isActiveGame := m.activeGames[currentMatchID]
 		if isActiveGame {
 			gamesList = append(gamesList, &GameView{
-				MatchID:    _game.Match.ID,
-				CreatedAt:  _game.Match.CreatedAt,
-				Players:    m.GetMatchLobbyUsers(currentMatchID),
-				Admin:      m.clients[_game.Match.OwnerPlayerID].User.ToView(),
-				MinPlayers: _game.ExampleWorld.MinPlayers,
-				MaxPlayers: _game.ExampleWorld.MaxPlayers,
-				Status:     "in_match",
+				MatchID:       _game.Match.ID,
+				CreatedAt:     _game.Match.CreatedAt,
+				Players:       m.GetMatchLobbyUsers(currentMatchID),
+				OwnerPlayerID: _game.Match.OwnerPlayerID,
+				MinPlayers:    _game.ExampleWorld.MinPlayers,
+				MaxPlayers:    _game.ExampleWorld.MaxPlayers,
+				Status:        "in_match",
 			})
 		}
 		_game, _isIdleGame := m.idleGames[currentMatchID]
 		if _isIdleGame {
 			gamesList = append(gamesList, &GameView{
-				MatchID:    _game.Match.ID,
-				CreatedAt:  _game.Match.CreatedAt,
-				Players:    m.GetMatchLobbyUsers(currentMatchID),
-				Admin:      m.clients[_game.Match.OwnerPlayerID].User.ToView(),
-				MinPlayers: _game.ExampleWorld.MinPlayers,
-				MaxPlayers: _game.ExampleWorld.MaxPlayers,
-				Status:     "in_match_lobby",
+				MatchID:       _game.Match.ID,
+				CreatedAt:     _game.Match.CreatedAt,
+				Players:       m.GetMatchLobbyUsers(currentMatchID),
+				OwnerPlayerID: _game.Match.OwnerPlayerID,
+				MinPlayers:    _game.ExampleWorld.MinPlayers,
+				MaxPlayers:    _game.ExampleWorld.MaxPlayers,
+				Status:        "in_match_lobby",
 			})
 		}
 	}
@@ -52,13 +52,13 @@ func (m *Manager) GetAllMatches(clientID uint) []*GameView {
 			continue
 		}
 		gamesList = append(gamesList, &GameView{
-			MatchID:    _game.Match.ID,
-			CreatedAt:  _game.Match.CreatedAt,
-			Players:    m.GetMatchLobbyUsers(_matchID),
-			Admin:      m.clients[_game.Match.OwnerPlayerID].User.ToView(),
-			MinPlayers: _game.ExampleWorld.MinPlayers,
-			MaxPlayers: _game.ExampleWorld.MaxPlayers,
-			Status:     "idle_match",
+			MatchID:       _game.Match.ID,
+			CreatedAt:     _game.Match.CreatedAt,
+			Players:       m.GetMatchLobbyUsers(_matchID),
+			OwnerPlayerID: _game.Match.OwnerPlayerID,
+			MinPlayers:    _game.ExampleWorld.MinPlayers,
+			MaxPlayers:    _game.ExampleWorld.MaxPlayers,
+			Status:        "idle_match",
 		})
 	}
 	for _matchID, _game := range m.activeGames {
@@ -66,13 +66,13 @@ func (m *Manager) GetAllMatches(clientID uint) []*GameView {
 			continue
 		}
 		gamesList = append(gamesList, &GameView{
-			MatchID:    _game.Match.ID,
-			CreatedAt:  _game.Match.CreatedAt,
-			Players:    m.GetMatchLobbyUsers(_matchID),
-			Admin:      m.clients[_game.Match.OwnerPlayerID].User.ToView(),
-			MinPlayers: _game.ExampleWorld.MinPlayers,
-			MaxPlayers: _game.ExampleWorld.MaxPlayers,
-			Status:     "active_match",
+			MatchID:       _game.Match.ID,
+			CreatedAt:     _game.Match.CreatedAt,
+			Players:       m.GetMatchLobbyUsers(_matchID),
+			OwnerPlayerID: _game.Match.OwnerPlayerID,
+			MinPlayers:    _game.ExampleWorld.MinPlayers,
+			MaxPlayers:    _game.ExampleWorld.MaxPlayers,
+			Status:        "active_match",
 		})
 	}
 	return gamesList
