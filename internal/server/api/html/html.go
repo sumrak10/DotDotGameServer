@@ -2,7 +2,7 @@ package html
 
 import (
 	"OnlineGame/internal/config"
-	"fmt"
+	"OnlineGame/templates"
 	"html/template"
 	"net/http"
 
@@ -19,16 +19,12 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	}{
 		BaseURL: config.Server().GetAddress(),
 	}
-	var tmplIndex, err = template.ParseFiles("templates/index.html")
+	tmpl, err := template.ParseFS(templates.TemplatesFS, "index.html")
 	if err != nil {
-		fmt.Println(err)
+		http.Error(w, err.Error(), 500)
 		return
 	}
-	if tmplIndex == nil {
-		fmt.Println("tmplIndex is nil")
-		return
-	}
-	err = tmplIndex.Execute(w, context)
+	err = tmpl.Execute(w, context)
 	if err != nil {
 		return
 	}
