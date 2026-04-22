@@ -7,7 +7,7 @@ services:
     env_file:
       - ".env"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/root/db.sqlite
 
 volumes:
   db_data:
