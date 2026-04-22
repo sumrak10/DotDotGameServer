@@ -3,6 +3,7 @@ package manager
 import (
 	"OnlineGame/internal/clients"
 	"OnlineGame/internal/database"
+	"OnlineGame/internal/game/world"
 	"OnlineGame/internal/utils"
 	"errors"
 	"time"
@@ -24,25 +25,27 @@ func (m *Manager) GetAllMatches(clientID uint) []*GameView {
 	if clientCurrentlyInMatch {
 		_game, isActiveGame := m.activeGames[currentMatchID]
 		if isActiveGame {
+			minPlayers, maxPlayers, _ := world.ParseWorldPropsFromString(_game.Match.WorldString)
 			gamesList = append(gamesList, &GameView{
 				MatchID:       _game.Match.ID,
 				CreatedAt:     _game.Match.CreatedAt,
 				Players:       m.GetMatchLobbyUsers(currentMatchID),
 				OwnerPlayerID: _game.Match.OwnerPlayerID,
-				MinPlayers:    _game.ExampleWorld.MinPlayers,
-				MaxPlayers:    _game.ExampleWorld.MaxPlayers,
+				MinPlayers:    minPlayers,
+				MaxPlayers:    maxPlayers,
 				Status:        "in_match",
 			})
 		}
 		_game, _isIdleGame := m.idleGames[currentMatchID]
 		if _isIdleGame {
+			minPlayers, maxPlayers, _ := world.ParseWorldPropsFromString(_game.Match.WorldString)
 			gamesList = append(gamesList, &GameView{
 				MatchID:       _game.Match.ID,
 				CreatedAt:     _game.Match.CreatedAt,
 				Players:       m.GetMatchLobbyUsers(currentMatchID),
 				OwnerPlayerID: _game.Match.OwnerPlayerID,
-				MinPlayers:    _game.ExampleWorld.MinPlayers,
-				MaxPlayers:    _game.ExampleWorld.MaxPlayers,
+				MinPlayers:    minPlayers,
+				MaxPlayers:    maxPlayers,
 				Status:        "in_match_lobby",
 			})
 		}
@@ -51,13 +54,14 @@ func (m *Manager) GetAllMatches(clientID uint) []*GameView {
 		if _matchID == currentMatchID {
 			continue
 		}
+		minPlayers, maxPlayers, _ := world.ParseWorldPropsFromString(_game.Match.WorldString)
 		gamesList = append(gamesList, &GameView{
 			MatchID:       _game.Match.ID,
 			CreatedAt:     _game.Match.CreatedAt,
 			Players:       m.GetMatchLobbyUsers(_matchID),
 			OwnerPlayerID: _game.Match.OwnerPlayerID,
-			MinPlayers:    _game.ExampleWorld.MinPlayers,
-			MaxPlayers:    _game.ExampleWorld.MaxPlayers,
+			MinPlayers:    minPlayers,
+			MaxPlayers:    maxPlayers,
 			Status:        "idle_match",
 		})
 	}
@@ -65,13 +69,14 @@ func (m *Manager) GetAllMatches(clientID uint) []*GameView {
 		if _matchID == currentMatchID {
 			continue
 		}
+		minPlayers, maxPlayers, _ := world.ParseWorldPropsFromString(_game.Match.WorldString)
 		gamesList = append(gamesList, &GameView{
 			MatchID:       _game.Match.ID,
 			CreatedAt:     _game.Match.CreatedAt,
 			Players:       m.GetMatchLobbyUsers(_matchID),
 			OwnerPlayerID: _game.Match.OwnerPlayerID,
-			MinPlayers:    _game.ExampleWorld.MinPlayers,
-			MaxPlayers:    _game.ExampleWorld.MaxPlayers,
+			MinPlayers:    minPlayers,
+			MaxPlayers:    maxPlayers,
 			Status:        "active_match",
 		})
 	}

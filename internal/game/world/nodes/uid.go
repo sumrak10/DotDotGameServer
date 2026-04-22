@@ -4,7 +4,6 @@ import "sync/atomic"
 
 func CreateNodeIDGenerator() func() NodeID {
 	var counter uint64
-
 	return func() NodeID {
 		return NodeID(atomic.AddUint64(&counter, 1))
 	}
@@ -12,7 +11,6 @@ func CreateNodeIDGenerator() func() NodeID {
 
 func CreateNodeEdgeIDGenerator() func() NodeEdgeID {
 	var counter uint64
-
 	return func() NodeEdgeID {
 		return NodeEdgeID(atomic.AddUint64(&counter, 1))
 	}
@@ -20,7 +18,6 @@ func CreateNodeEdgeIDGenerator() func() NodeEdgeID {
 
 func CreateArmyIDGenerator() func() ArmyID {
 	var counter uint64
-
 	return func() ArmyID {
 		return ArmyID(atomic.AddUint64(&counter, 1))
 	}

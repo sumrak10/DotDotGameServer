@@ -28,8 +28,20 @@ func CreateMatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	queryParams := r.URL.Query()
+	gameName := queryParams.Get("name")
+	if gameName == "" {
+		APIhelpers.ErrorJSONResponse(w, "invalid name", http.StatusBadRequest)
+		return
+	}
+	worldString := queryParams.Get("world")
+	if worldString == "" {
+		APIhelpers.ErrorJSONResponse(w, "invalid world", http.StatusBadRequest)
+		return
+	}
+
 	m := manager.GetManager()
-	game, err := m.CreateGame(userID)
+	game, err := m.CreateGame(userID, gameName, worldString)
 	if err != nil {
 		APIhelpers.ErrorJSONResponse(w, err.Error(), http.StatusBadRequest)
 		return

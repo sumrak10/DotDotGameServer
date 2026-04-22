@@ -22,7 +22,7 @@ func (w *World) SendArmy(playerID uint, headingFromID nodes.NodeID, headingToID 
 	if !_found {
 		return errors.New("heading to node not found")
 	}
-	nodeEdge := w.getNodeEdgeByN1N2(headingFromNode.ID, headingToNode.ID)
+	nodeEdge := w.GetNodeEdgeByN1N2(headingFromNode.ID, headingToNode.ID)
 	if nodeEdge == nil {
 		return errors.New("between this nodes no edge")
 	}
@@ -45,14 +45,14 @@ func (w *World) SendArmy(playerID uint, headingFromID nodes.NodeID, headingToID 
 func (w *World) UpdateNodeType(playerID uint, nodeID nodes.NodeID, newType nodespb.NodeType) error {
 	node := w.Nodes[nodeID]
 	if node == nil {
-		return errors.New(fmt.Sprintf("node#%d not found", nodeID))
+		return fmt.Errorf("node#%d not found", nodeID)
 	}
 	if node.OwnerID != playerID {
 		return errors.New("player can't change type not own node")
 	}
 	nodeTypeProps, found := nodes.NodeTypePropsMap[newType]
 	if !found {
-		return errors.New(fmt.Sprintf("for type %d not supported", newType))
+		return fmt.Errorf("for type %d not supported", newType)
 	}
 	transformCost := nodeTypeProps.TransformCost
 	if transformCost == 0 {
@@ -75,11 +75,11 @@ func (w *World) UpdateNodeType(playerID uint, nodeID nodes.NodeID, newType nodes
 func (w *World) SetAlwaysSendArmy(playerID uint, fromNodeID nodes.NodeID, toNodeID nodes.NodeID, mode bool) error {
 	fromNode := w.Nodes[fromNodeID]
 	if fromNode == nil {
-		return errors.New(fmt.Sprintf("node#%d not found", fromNodeID))
+		return fmt.Errorf("node#%d not found", fromNodeID)
 	}
 	toNode := w.Nodes[toNodeID]
 	if toNode == nil {
-		return errors.New(fmt.Sprintf("node#%d not found", toNodeID))
+		return fmt.Errorf("node#%d not found", toNodeID)
 	}
 	if fromNode.OwnerID != playerID {
 		return errors.New("player can't set AlwaysSendArmy not own node")

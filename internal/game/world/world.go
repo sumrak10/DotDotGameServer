@@ -8,6 +8,9 @@ import (
 )
 
 type World struct {
+	// Flags
+	isInitialized bool
+
 	// Props
 	MinPlayers        uint8
 	MaxPlayers        uint8
@@ -50,25 +53,6 @@ func (w *World) ToProto() *worldpb.World {
 	}
 }
 
-func NewWorld(minPlayers, maxPlayers uint8) *World {
-	return &World{
-		MinPlayers:        minPlayers,
-		MaxPlayers:        maxPlayers,
-		PlayersStartNodes: make([]*nodes.Node, 0, maxPlayers),
-
-		Nodes: make(map[nodes.NodeID]*nodes.Node),
-
-		NodeEdges:       make([]*nodes.NodeEdge, 0),
-		nodeEdgeIDMap:   make(map[nodes.NodeEdgeID]*nodes.NodeEdge),
-		nodeEdgesKeyMap: make(map[nodes.NodeEdgeKey]*nodes.NodeEdge),
-		nodeNeighbors:   make(map[nodes.NodeID][]nodes.NodeID),
-
-		nodeIDGenerator:     nodes.CreateNodeIDGenerator(),
-		nodeEdgeIDGenerator: nodes.CreateNodeEdgeIDGenerator(),
-		armyIDGenerator:     nodes.CreateArmyIDGenerator(),
-	}
-}
-
 func (w *World) Init(playersIdAndStartPositionsMap map[uint]uint) {
 	minValue := uint64(1)
 	maxValue := uint64(20)
@@ -81,10 +65,11 @@ func (w *World) Init(playersIdAndStartPositionsMap map[uint]uint) {
 		playerStartNode := w.PlayersStartNodes[startPosition]
 		playerStartNode.OwnerID = playerID
 		playerStartNode.Value = uint(10)
-		for _, neighborNode := range w.getNodeNeighbors(playerStartNode.ID) {
+		for _, neighborNode := range w.GetNodeNeighbors(playerStartNode.ID) {
 			neighborNode.Value = uint(10)
 		}
 	}
+	w.isInitialized = true
 }
 
 func (w *World) Tick() map[uint]uint {
@@ -102,4 +87,8 @@ func (w *World) Tick() map[uint]uint {
 	}
 
 	return playersActivesCount
+}
+
+func (w *World) IsInitialized() bool {
+	return w.isInitialized
 }

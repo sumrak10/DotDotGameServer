@@ -3,7 +3,6 @@ package main
 import (
 	"OnlineGame/internal/config"
 	"OnlineGame/internal/database"
-	"OnlineGame/internal/game/world"
 	"OnlineGame/internal/manager"
 	"OnlineGame/internal/server"
 	"fmt"
@@ -22,9 +21,6 @@ func main() {
 
 	_ = database.GetDB()
 	fmt.Println("DB initialized...")
-
-	_ = world.GetPresetVault()
-	fmt.Println("Preset Vault initialized...")
 
 	_ = manager.GetManager()
 	fmt.Println("Manager initialized...")

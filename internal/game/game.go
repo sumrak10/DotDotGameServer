@@ -42,8 +42,6 @@ func NewGame(match *database.Match, onStartUp, onShutDown func()) (*Game, error)
 		onShutDown: onShutDown,
 
 		players: make(map[uint]*Player),
-
-		ExampleWorld: world.GetPresetVault().GetExampleWorld(match.WorldBuilderName),
 	}, nil
 }
 
@@ -53,12 +51,22 @@ func (g *Game) Start(clients []*clients.Client) error {
 		return errors.New("game is already running")
 	}
 
+	_world, err := world.NewWorldFromString(g.Match.WorldString)
+	if err != nil {
+		return fmt.Errorf("error while creating world: %w", err)
+	}
+	g.world = _world
+
 	playersIdAndStartPositionsMap := make(map[uint]uint)
 	for i, client := range clients {
 		g.players[client.User.ID] = NewPlayer(client)
 		playersIdAndStartPositionsMap[uint(i)] = client.User.ID
 	}
-	g.world = world.GetPresetVault().BuildWorld(g.Match.WorldBuilderName, playersIdAndStartPositionsMap)
+	g.world.Init(playersIdAndStartPositionsMap)
+
+	if !g.world.IsInitialized() {
+		panic("game is not initialized")
+	}
 
 	g.running.Store(true)
 	fmt.Println("World initialised")

@@ -203,6 +203,12 @@
             padding: 20px;
             overflow-y: auto;
         }
+        .matches-create {
+            display: flex;
+            flex-direction: column;
+            justify-content: end;
+            margin-bottom: 16px;
+        }
         .matches-sidebar {
             background: var(--surface);
             border-left: 1px solid var(--border);
@@ -534,11 +540,21 @@
     </div>
     <div class="matches-layout">
         <div class="matches-main">
+            <div class="matches-create">
+                <div class="form-group">
+                    <label>Название</label>
+                    <input type="text" id="match-name" placeholder="" value="Game">
+                </div>
+                <div class="form-group">
+                    <label>Строка</label>
+                    <input type="email" id="match-world-string" placeholder="" value="2:2;0,0:0,1:1,0:1,1;1,2:2,3:3,4:4,1;1:3">
+                </div>
+                <button class="btn btn-success" onclick="doCreateMatch()">+ Создать матч</button>
+            </div>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
                 <div class="section-title">Список матчей</div>
                 <div>
                     <button class="btn btn-success" onclick="loadMatches()">Обновить</button>
-                    <button class="btn btn-success" onclick="doCreateMatch()">+ Создать матч</button>
                 </div>
             </div>
             <div id="matches-list" class="match-list">
@@ -859,8 +875,10 @@
     }
 
     async function doCreateMatch() {
+        const gameName = document.getElementById('match-name').value.trim();
+        const worldString = document.getElementById('match-world-string').value.trim();
         try {
-            const m = await api('POST', '/matches', {});
+            const m = await api('POST', `/matches?name=${encodeURIComponent(gameName)}&world=${encodeURIComponent(worldString)}`, {});
             toast(`Матч #${m.id} создан`, 'success');
             await loadMatches();
             await doJoinMatchLobby(m.id);

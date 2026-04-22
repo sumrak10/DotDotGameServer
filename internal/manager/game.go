@@ -3,19 +3,20 @@ package manager
 import (
 	"OnlineGame/internal/database"
 	"OnlineGame/internal/game"
+	"OnlineGame/internal/game/world"
 	gamepb "OnlineGame/pkg/pb/go/game"
 	"errors"
 	"fmt"
 )
 
-func (m *Manager) CreateGame(clientID uint) (*game.Game, error) {
+func (m *Manager) CreateGame(clientID uint, gameName string, worldString string) (*game.Game, error) {
 	_currentMatchID, _inGame := m.IsClientInMatch(clientID)
 	if _inGame {
-		return nil, errors.New(fmt.Sprintf("user currently in match with id=%d", _currentMatchID))
+		return nil, fmt.Errorf("user currently in match with id=%d", _currentMatchID)
 	}
 
 	repo := database.NewMatchRepository(database.GetDB())
-	match, err := repo.Create("Game", "default", clientID)
+	match, err := repo.Create(gameName, worldString, clientID)
 	if err != nil {
 		return nil, errors.New("failed to create match")
 	}
@@ -69,15 +70,19 @@ func (m *Manager) StartGame(clientID uint, matchID uint) error {
 		return errors.New("you are not the owner of the game")
 	}
 
-	_lobby := m.lobby[matchID]
-	if len(_lobby) < int(_game.ExampleWorld.MinPlayers) {
-		return errors.New(
-			fmt.Sprintf("provided %d players. for start needed minimum %d", len(_lobby), _game.ExampleWorld.MinPlayers))
+	minPlayers, _, err := world.ParseWorldPropsFromString(_game.Match.WorldString)
+	if err != nil {
+		return fmt.Errorf("could not parse world props: %w", err)
 	}
 
-	err := _game.Start(_lobby)
+	_lobby := m.lobby[matchID]
+	if len(_lobby) < int(minPlayers) {
+		return fmt.Errorf("provided %d players. for start needed minimum %d", len(_lobby), _game.ExampleWorld.MinPlayers)
+	}
+
+	err = _game.Start(_lobby)
 	if err != nil {
-		return err
+		return fmt.Errorf("error starting game: %w", err)
 	}
 
 	m.deleteIdleGame(matchID)
