@@ -8,6 +8,15 @@ services:
       - ".env"
     volumes:
       - db_data:/root/db/
-
+      -
+  web_server:
+    image: nginx:latest
+    container_name: nginx_ssl_test
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/ssl:ro
+    restart: always
 volumes:
   db_data:
