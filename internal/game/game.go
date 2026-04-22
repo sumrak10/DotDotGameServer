@@ -83,7 +83,7 @@ func (g *Game) IsRunning() bool {
 }
 
 func (g *Game) run() {
-	ticker := time.NewTicker(time.Second / time.Duration(int64(config.Game().TPS)))
+	ticker := time.NewTicker(time.Second / time.Duration(int64(config.Server().TPS)))
 	lastTick := time.Now()
 
 	// On Start up

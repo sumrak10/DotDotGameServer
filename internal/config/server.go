@@ -16,6 +16,7 @@ var (
 type ServerConfig struct {
 	ServerHost string `env:"SERVER_HOST,required"`
 	ServerPort uint   `env:"SERVER_PORT,required"`
+	TPS        uint   `env:"SERVER_TPS,required"`
 }
 
 func Server() *ServerConfig {

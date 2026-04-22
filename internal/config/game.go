@@ -13,9 +13,8 @@ var (
 )
 
 type GameConfig struct {
-	TPS         uint `env:"GAME_TPS,required"`
-	MotionScale uint `env:"GAME_MOTION_SCALE,required"`
-	ArmySpeed   uint `env:"GAME_ARMY_SPEED,required"`
+	ValuesScaleCoef uint `env:"GAME_VALUES_SCALE_COEF,required"`
+	ArmySpeed       uint `env:"GAME_ARMY_SPEED,required"`
 }
 
 func Game() *GameConfig {

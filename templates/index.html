@@ -641,6 +641,7 @@
 <script src="/static/protobuf.min.js"></script>
 <script>
     const BASE = '{{ .BaseURL }}';
+    const GAME_VALUES_SCALE_COEF = '{{ .ValuesScaleCoef }}'
     let token = localStorage.getItem('token');
     let myUsername = null;
     let myUserId = null;
@@ -1397,7 +1398,7 @@
         if (!s||!e) return;
         const dx = e.posX - s.posX, dy = e.posY - s.posY;
         const dist = Math.sqrt(dx*dx+dy*dy);
-        let progress = dist > 0 ? Math.min(Math.max((army.pos / 10000) / dist, 0), 1) : 0;
+        let progress = dist > 0 ? Math.min(Math.max((army.pos / GAME_VALUES_SCALE_COEF) / dist, 0), 1) : 0;
         const sP = getCanvasCoords(s.posX, s.posY);
         const eP = getCanvasCoords(e.posX, e.posY);
         const cx = sP.x + (eP.x - sP.x) * progress;

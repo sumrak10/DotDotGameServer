@@ -89,7 +89,7 @@ func (w *World) addEdgeNode(n1ID nodes.NodeID, n2ID nodes.NodeID) (*nodes.NodeEd
 			math.Pow(float64(n2.PosX-n1.PosX), 2)+
 				math.Pow(float64(n2.PosY-n1.PosY), 2),
 		),
-	) * float64(config.Game().MotionScale)
+	) * float64(config.Game().ValuesScaleCoef)
 	id := w.nodeEdgeIDGenerator()
 	nodeEdge := &nodes.NodeEdge{
 		ID:     id,
