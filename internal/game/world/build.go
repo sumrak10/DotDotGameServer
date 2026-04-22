@@ -8,7 +8,8 @@ import (
 )
 
 var DefaultPresets = map[string]string{
-	"default": "2:2;0,0:0,1:1,0:1,1;1,2:2,3:3,4:4,1;1:3",
+	"default":  "2:2;0,0:0,1:1,0:1,1;1,2:2,3:3,4:4,1;1:3",
+	"bigworld": "2:2;0,0:1,0:2,0:0,1:1,1:2,1:0,2:1,2:2,2;2,3:4,5:5,6:7,8:1,4:2,5:3,6:4,7:5,8:6,9:7,1;1:9",
 }
 
 func NewWorldFromString(worldString string) (*World, error) {
@@ -97,10 +98,11 @@ func (w *World) newNodesFromString(nodesSection string) error {
 		if err != nil {
 			return err
 		}
-		_, err = w.addNode(int(posX), int(posY), 0)
+		node, err := w.addNode(int(posX), int(posY), 0)
 		if err != nil {
 			return err
 		}
+		fmt.Println("Node created: ", node.ID)
 	}
 	return nil
 }
@@ -110,7 +112,7 @@ func (w *World) newNodeEdgesFromString(nodeEdgesSection string) error {
 	for _, part := range edgesSectionParts {
 		nodeIDs := strings.Split(part, ",")
 		if len(nodeIDs) != 2 {
-			return fmt.Errorf("invalid node id: %s", part)
+			return fmt.Errorf("invalid node edge define: %s", part)
 		}
 		n1ID, err := strconv.ParseUint(nodeIDs[0], 10, 32)
 		if err != nil {
