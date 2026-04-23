@@ -57,12 +57,12 @@ func (g *Game) Start(clients []*clients.Client) error {
 	}
 	g.world = _world
 
-	playersIdAndStartPositionsMap := make(map[uint]uint)
+	playerGIDnIDMap := make(map[uint]uint)
 	for i, client := range clients {
 		g.players[client.User.ID] = NewPlayer(client)
-		playersIdAndStartPositionsMap[uint(i)] = client.User.ID
+		playerGIDnIDMap[uint(i)+1] = client.User.ID
 	}
-	g.world.Init(playersIdAndStartPositionsMap)
+	g.world.Init(playerGIDnIDMap)
 
 	if !g.world.IsInitialized() {
 		panic("game is not initialized")
@@ -123,9 +123,10 @@ func (g *Game) tick(currentTPS float64) {
 	playersActivesCounter := g.world.Tick()
 	deadPlayers := 0
 	var winnerID uint
-	for playerID, player := range g.players {
-		actives, found := playersActivesCounter[playerID]
-		if !found || actives == 0 {
+	for playerID, playerGID := range g.world.PlayerIDnGIDMap {
+		actives := playersActivesCounter[playerGID]
+		player := g.players[playerID]
+		if actives == 0 {
 			player.IsAlive = false
 			deadPlayers++
 		} else {

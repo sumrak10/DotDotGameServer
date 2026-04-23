@@ -23,14 +23,14 @@ const (
 )
 
 type World struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	MinPlayers        uint32                 `protobuf:"varint,1,opt,name=min_players,json=minPlayers,proto3" json:"min_players,omitempty"`
-	MaxPlayers        uint32                 `protobuf:"varint,2,opt,name=max_players,json=maxPlayers,proto3" json:"max_players,omitempty"`
-	PlayersStartNodes []*nodes.Node          `protobuf:"bytes,3,rep,name=players_start_nodes,json=playersStartNodes,proto3" json:"players_start_nodes,omitempty"`
-	Nodes             map[uint32]*nodes.Node `protobuf:"bytes,4,rep,name=nodes,proto3" json:"nodes,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	NodeEdges         []*nodes.NodeEdge      `protobuf:"bytes,5,rep,name=node_edges,json=nodeEdges,proto3" json:"node_edges,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	MinPlayers      uint32                 `protobuf:"varint,1,opt,name=min_players,json=minPlayers,proto3" json:"min_players,omitempty"`
+	MaxPlayers      uint32                 `protobuf:"varint,2,opt,name=max_players,json=maxPlayers,proto3" json:"max_players,omitempty"`
+	PlayerIdNGidMap map[uint32]uint32      `protobuf:"bytes,3,rep,name=player_id_n_gid_map,json=playerIdNGidMap,proto3" json:"player_id_n_gid_map,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	Nodes           map[uint32]*nodes.Node `protobuf:"bytes,4,rep,name=nodes,proto3" json:"nodes,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	NodeEdges       []*nodes.NodeEdge      `protobuf:"bytes,5,rep,name=node_edges,json=nodeEdges,proto3" json:"node_edges,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *World) Reset() {
@@ -77,9 +77,9 @@ func (x *World) GetMaxPlayers() uint32 {
 	return 0
 }
 
-func (x *World) GetPlayersStartNodes() []*nodes.Node {
+func (x *World) GetPlayerIdNGidMap() map[uint32]uint32 {
 	if x != nil {
-		return x.PlayersStartNodes
+		return x.PlayerIdNGidMap
 	}
 	return nil
 }
@@ -102,16 +102,19 @@ var File_game_world_world_proto protoreflect.FileDescriptor
 
 const file_game_world_world_proto_rawDesc = "" +
 	"\n" +
-	"\x16game/world/world.proto\x12\x05world\x1a\x1cgame/world/nodes/nodes.proto\"\xac\x02\n" +
+	"\x16game/world/world.proto\x12\x05world\x1a\x1cgame/world/nodes/nodes.proto\"\x84\x03\n" +
 	"\x05World\x12\x1f\n" +
 	"\vmin_players\x18\x01 \x01(\rR\n" +
 	"minPlayers\x12\x1f\n" +
 	"\vmax_players\x18\x02 \x01(\rR\n" +
-	"maxPlayers\x12;\n" +
-	"\x13players_start_nodes\x18\x03 \x03(\v2\v.nodes.NodeR\x11playersStartNodes\x12-\n" +
+	"maxPlayers\x12O\n" +
+	"\x13player_id_n_gid_map\x18\x03 \x03(\v2!.world.World.PlayerIdNGidMapEntryR\x0fplayerIdNGidMap\x12-\n" +
 	"\x05nodes\x18\x04 \x03(\v2\x17.world.World.NodesEntryR\x05nodes\x12.\n" +
 	"\n" +
-	"node_edges\x18\x05 \x03(\v2\x0f.nodes.NodeEdgeR\tnodeEdges\x1aE\n" +
+	"node_edges\x18\x05 \x03(\v2\x0f.nodes.NodeEdgeR\tnodeEdges\x1aB\n" +
+	"\x14PlayerIdNGidMapEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\rR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\rR\x05value:\x028\x01\x1aE\n" +
 	"\n" +
 	"NodesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\rR\x03key\x12!\n" +
@@ -129,18 +132,19 @@ func file_game_world_world_proto_rawDescGZIP() []byte {
 	return file_game_world_world_proto_rawDescData
 }
 
-var file_game_world_world_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_game_world_world_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_game_world_world_proto_goTypes = []any{
 	(*World)(nil),          // 0: world.World
-	nil,                    // 1: world.World.NodesEntry
-	(*nodes.Node)(nil),     // 2: nodes.Node
+	nil,                    // 1: world.World.PlayerIdNGidMapEntry
+	nil,                    // 2: world.World.NodesEntry
 	(*nodes.NodeEdge)(nil), // 3: nodes.NodeEdge
+	(*nodes.Node)(nil),     // 4: nodes.Node
 }
 var file_game_world_world_proto_depIdxs = []int32{
-	2, // 0: world.World.players_start_nodes:type_name -> nodes.Node
-	1, // 1: world.World.nodes:type_name -> world.World.NodesEntry
+	1, // 0: world.World.player_id_n_gid_map:type_name -> world.World.PlayerIdNGidMapEntry
+	2, // 1: world.World.nodes:type_name -> world.World.NodesEntry
 	3, // 2: world.World.node_edges:type_name -> nodes.NodeEdge
-	2, // 3: world.World.NodesEntry.value:type_name -> nodes.Node
+	4, // 3: world.World.NodesEntry.value:type_name -> nodes.Node
 	4, // [4:4] is the sub-list for method output_type
 	4, // [4:4] is the sub-list for method input_type
 	4, // [4:4] is the sub-list for extension type_name
@@ -159,7 +163,7 @@ func file_game_world_world_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_game_world_world_proto_rawDesc), len(file_game_world_world_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -5,7 +5,7 @@ import (
 	"math"
 )
 
-type NodeID uint64
+type NodeID uint32
 
 const maxNodeValue = uint(math.MaxUint32 / 2)
 

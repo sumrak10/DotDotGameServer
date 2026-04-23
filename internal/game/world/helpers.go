@@ -110,10 +110,16 @@ func (w *World) addPlayerStartNode(nodeID nodes.NodeID) error {
 	if w.isInitialized {
 		return errors.New("can't player start position to initialized world")
 	}
-	node, found := w.Nodes[nodeID]
+	_, found := w.Nodes[nodeID]
 	if !found {
 		return fmt.Errorf("node#%d not found", uint(nodeID))
 	}
-	w.PlayersStartNodes = append(w.PlayersStartNodes, node)
+	maxGID := uint(0)
+	for playerGID, _ := range w.PlayersStartNodes {
+		if maxGID < playerGID {
+			maxGID = playerGID
+		}
+	}
+	w.PlayersStartNodes[maxGID+1] = nodeID
 	return nil
 }

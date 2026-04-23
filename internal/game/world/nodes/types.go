@@ -18,14 +18,14 @@ var NodeTypePropsMap = map[nodespb.NodeType]NodeTypeProps{
 	},
 	nodespb.NodeType_ProductionNodeType: {
 		TransformCost:    10,
-		ProduceSpeed:     15,
+		ProduceSpeed:     10,
 		MaxShield:        0,
 		ShieldRegenSpeed: 0,
 	},
 	nodespb.NodeType_FortressNodeType: {
-		TransformCost:    10,
+		TransformCost:    20,
 		ProduceSpeed:     120,
 		MaxShield:        20,
-		ShieldRegenSpeed: 15,
+		ShieldRegenSpeed: 10,
 	},
 }

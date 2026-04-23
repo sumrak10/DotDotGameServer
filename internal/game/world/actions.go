@@ -7,12 +7,20 @@ import (
 	"fmt"
 )
 
-func (w *World) SendArmy(playerID uint, headingFromID nodes.NodeID, headingToID nodes.NodeID, value uint) error {
+func (w *World) SendArmyAction(playerID uint, headingFromID nodes.NodeID, headingToID nodes.NodeID, value uint) error {
+	playerGID, found := w.PlayerIDnGIDMap[playerID]
+	if !found {
+		return errors.New("player not found")
+	}
+	return w.SendArmy(playerGID, headingFromID, headingToID, value)
+}
+
+func (w *World) SendArmy(playerGID uint, headingFromID nodes.NodeID, headingToID nodes.NodeID, value uint) error {
 	headingFromNode, _found := w.Nodes[headingFromID]
 	if !_found {
 		return errors.New("heading from node not found")
 	}
-	if headingFromNode.OwnerID != playerID {
+	if headingFromNode.OwnerID != playerGID {
 		return errors.New("player can't send army from not own node")
 	}
 	if headingFromNode.Value < value {
@@ -26,28 +34,34 @@ func (w *World) SendArmy(playerID uint, headingFromID nodes.NodeID, headingToID 
 	if nodeEdge == nil {
 		return errors.New("between this nodes no edge")
 	}
-	headingFromNode.Value -= value
 
-	_army := &nodes.Army{
+	headingFromNode.Value -= value
+	nodeEdge.Armies = append(nodeEdge.Armies, &nodes.Army{
 		ID:            w.armyIDGenerator(),
 		Pos:           0,
 		NodeEdgeID:    nodeEdge.ID,
 		HeadingFromID: headingFromNode.ID,
 		HeadingToID:   headingToNode.ID,
-		OwnerPlayerID: playerID,
+		OwnerPlayerID: playerGID,
 		Value:         value,
-	}
-
-	nodeEdge.Armies = append(nodeEdge.Armies, _army)
+	})
 	return nil
 }
 
-func (w *World) UpdateNodeType(playerID uint, nodeID nodes.NodeID, newType nodespb.NodeType) error {
+func (w *World) UpdateNodeTypeAction(playerID uint, nodeID nodes.NodeID, newType nodespb.NodeType) error {
+	playerGID, found := w.PlayerIDnGIDMap[playerID]
+	if !found {
+		return errors.New("player not found")
+	}
+	return w.UpdateNodeType(playerGID, nodeID, newType)
+}
+
+func (w *World) UpdateNodeType(playerGID uint, nodeID nodes.NodeID, newType nodespb.NodeType) error {
 	node := w.Nodes[nodeID]
 	if node == nil {
 		return fmt.Errorf("node#%d not found", nodeID)
 	}
-	if node.OwnerID != playerID {
+	if node.OwnerID != playerGID {
 		return errors.New("player can't change type not own node")
 	}
 	nodeTypeProps, found := nodes.NodeTypePropsMap[newType]
@@ -72,7 +86,15 @@ func (w *World) UpdateNodeType(playerID uint, nodeID nodes.NodeID, newType nodes
 	return nil
 }
 
-func (w *World) SetAlwaysSendArmy(playerID uint, fromNodeID nodes.NodeID, toNodeID nodes.NodeID, mode bool) error {
+func (w *World) SetAlwaysSendArmyAction(playerID uint, fromNodeID nodes.NodeID, toNodeID nodes.NodeID, mode bool) error {
+	playerGID, found := w.PlayerIDnGIDMap[playerID]
+	if !found {
+		return errors.New("player not found")
+	}
+	return w.SetAlwaysSendArmy(playerGID, fromNodeID, toNodeID, mode)
+}
+
+func (w *World) SetAlwaysSendArmy(playerGID uint, fromNodeID nodes.NodeID, toNodeID nodes.NodeID, mode bool) error {
 	fromNode := w.Nodes[fromNodeID]
 	if fromNode == nil {
 		return fmt.Errorf("node#%d not found", fromNodeID)
@@ -81,7 +103,7 @@ func (w *World) SetAlwaysSendArmy(playerID uint, fromNodeID nodes.NodeID, toNode
 	if toNode == nil {
 		return fmt.Errorf("node#%d not found", toNodeID)
 	}
-	if fromNode.OwnerID != playerID {
+	if fromNode.OwnerID != playerGID {
 		return errors.New("player can't set AlwaysSendArmy not own node")
 	}
 	if fromNodeID == toNodeID {

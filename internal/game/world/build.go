@@ -26,7 +26,8 @@ func NewWorldFromString(worldString string) (*World, error) {
 	resultWorld := &World{
 		MinPlayers:        minPlayers,
 		MaxPlayers:        maxPlayers,
-		PlayersStartNodes: make([]*nodes.Node, 0, maxPlayers),
+		PlayerIDnGIDMap:   make(map[uint]uint),
+		PlayersStartNodes: make(map[uint]nodes.NodeID),
 
 		Nodes: make(map[nodes.NodeID]*nodes.Node),
 

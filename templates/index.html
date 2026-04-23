@@ -1452,7 +1452,7 @@
         const node = getNodeAt(pos.x, pos.y);
         if (node) {
             if (selectedNodeId === null) {
-                if (node.ownerId === myUserId) {
+                if (node.ownerId === world.playerIdNGidMap[myUserId]) {
                     console.log(node);
                     selectedNodeId = node.id;
                     setStatus(`Нода #${node.id} выбрана — кликните на цель для отправки армии`);
@@ -1513,7 +1513,7 @@
         const pos = getPos(e);
         const node = getNodeAt(pos.x, pos.y);
         if (!node) return;
-        if (node.ownerId === myUserId && node.isAlwaysSendArmy) {
+        if (node.ownerId === world.playerIdNGidMap[myUserId] && node.isAlwaysSendArmy) {
             actionSetAlwaysSendArmy(node.id, 0, false);
         }
     });
@@ -1523,7 +1523,7 @@
         hideCtxMenu();
         const pos = getPos(e);
         const node = getNodeAt(pos.x, pos.y);
-        if (node && node.ownerId === myUserId) {
+        if (node && node.ownerId === world.playerIdNGidMap[myUserId]) {
             contextNodeId = node.id;
             const menu = document.getElementById('ctx-menu');
             const wrapper = canvas.parentElement;

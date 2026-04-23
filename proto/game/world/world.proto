@@ -8,7 +8,7 @@ option go_package = "OnlineGame/pkg/pb/go/game/world";
 message World {
   uint32 min_players = 1;
   uint32 max_players = 2;
-  repeated nodes.Node players_start_nodes = 3;
+  map<uint32, uint32> player_id_n_gid_map = 3;
   map<uint32, nodes.Node> nodes = 4;
   repeated nodes.NodeEdge node_edges = 5;
 }

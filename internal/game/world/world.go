@@ -14,13 +14,14 @@ type World struct {
 	// Props
 	MinPlayers        uint8
 	MaxPlayers        uint8
-	PlayersStartNodes []*nodes.Node
+	PlayerIDnGIDMap   map[uint]uint
+	PlayersStartNodes map[uint]nodes.NodeID
 
 	// Node
-	Nodes map[nodes.NodeID]*nodes.Node `json:"nodes"`
+	Nodes map[nodes.NodeID]*nodes.Node
 
 	// NodeEdgeID
-	NodeEdges       []*nodes.NodeEdge `json:"node_edges"`
+	NodeEdges       []*nodes.NodeEdge
 	nodeEdgeIDMap   map[nodes.NodeEdgeID]*nodes.NodeEdge
 	nodeEdgesKeyMap map[nodes.NodeEdgeKey]*nodes.NodeEdge
 	nodeNeighbors   map[nodes.NodeID][]nodes.NodeID
@@ -32,9 +33,9 @@ type World struct {
 }
 
 func (w *World) ToProto() *worldpb.World {
-	protoPlayersStartNodes := make([]*nodespb.Node, 0, w.MaxPlayers)
-	for _, n := range w.PlayersStartNodes {
-		protoPlayersStartNodes = append(protoPlayersStartNodes, n.ToProto())
+	protoPlayerIDnGIDMap := make(map[uint32]uint32)
+	for playerID, playerGID := range w.PlayerIDnGIDMap {
+		protoPlayerIDnGIDMap[uint32(playerID)] = uint32(playerGID)
 	}
 	protoNodes := make(map[uint32]*nodespb.Node)
 	for id, n := range w.Nodes {
@@ -45,15 +46,15 @@ func (w *World) ToProto() *worldpb.World {
 		protoNodeEdges = append(protoNodeEdges, n.ToProto())
 	}
 	return &worldpb.World{
-		MinPlayers:        uint32(w.MinPlayers),
-		MaxPlayers:        uint32(w.MaxPlayers),
-		PlayersStartNodes: protoPlayersStartNodes,
-		Nodes:             protoNodes,
-		NodeEdges:         protoNodeEdges,
+		MinPlayers:      uint32(w.MinPlayers),
+		MaxPlayers:      uint32(w.MaxPlayers),
+		PlayerIdNGidMap: protoPlayerIDnGIDMap,
+		Nodes:           protoNodes,
+		NodeEdges:       protoNodeEdges,
 	}
 }
 
-func (w *World) Init(playersIdAndStartPositionsMap map[uint]uint) {
+func (w *World) Init(playerGIDnIDMap map[uint]uint) {
 	minValue := uint64(1)
 	maxValue := uint64(20)
 	// Init other nodes
@@ -61,11 +62,14 @@ func (w *World) Init(playersIdAndStartPositionsMap map[uint]uint) {
 		node.Value = uint(minValue + rand.Uint64N(maxValue-minValue+1))
 	}
 	// Init start nodes for players
-	for startPosition, playerID := range playersIdAndStartPositionsMap {
-		playerStartNode := w.PlayersStartNodes[startPosition]
-		playerStartNode.OwnerID = playerID
+	for playerGID, playerID := range playerGIDnIDMap {
+		w.PlayerIDnGIDMap[playerID] = playerGID
+
+		playerStartNodeID := w.PlayersStartNodes[playerGID]
+		playerStartNode := w.Nodes[playerStartNodeID]
+		playerStartNode.OwnerID = playerGID
 		playerStartNode.Value = uint(10)
-		for _, neighborNode := range w.GetNodeNeighbors(playerStartNode.ID) {
+		for _, neighborNode := range w.GetNodeNeighbors(playerStartNodeID) {
 			neighborNode.Value = uint(10)
 		}
 	}

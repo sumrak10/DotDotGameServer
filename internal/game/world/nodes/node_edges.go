@@ -14,13 +14,13 @@ func NewNodeEdgeKey(id1, id2 NodeID) NodeEdgeKey {
 	return NodeEdgeKey{N1: id2, N2: id1}
 }
 
-type NodeEdgeID uint64
+type NodeEdgeID uint32
 
 type NodeEdge struct {
-	ID     NodeEdgeID `json:"id"`
-	N1ID   NodeID     `json:"n1_id"`
-	N2ID   NodeID     `json:"n2_id"`
-	Length uint       `json:"length"`
+	ID     NodeEdgeID
+	N1ID   NodeID
+	N2ID   NodeID
+	Length uint
 
 	Armies []*Army `json:"armies"`
 }

@@ -35,20 +35,20 @@ func (g *Game) applyInput(queueMessage *inputQueueMessage) {
 	var actionErr error
 	switch action := queueMessage.Action.Payload.(type) {
 	case *gamepb.ActionInputMessage_SendArmy:
-		actionErr = g.world.SendArmy(
+		actionErr = g.world.SendArmyAction(
 			player.Client.User.ID,
 			nodes.NodeID(action.SendArmy.HeadingFromId),
 			nodes.NodeID(action.SendArmy.HeadingToId),
 			uint(action.SendArmy.Value),
 		)
 	case *gamepb.ActionInputMessage_UpdateNodeType:
-		actionErr = g.world.UpdateNodeType(
+		actionErr = g.world.UpdateNodeTypeAction(
 			player.Client.User.ID,
 			nodes.NodeID(action.UpdateNodeType.NodeId),
 			action.UpdateNodeType.NewType,
 		)
 	case *gamepb.ActionInputMessage_SetAlwaysSendArmy:
-		actionErr = g.world.SetAlwaysSendArmy(
+		actionErr = g.world.SetAlwaysSendArmyAction(
 			player.Client.User.ID,
 			nodes.NodeID(action.SetAlwaysSendArmy.FromNodeId),
 			nodes.NodeID(action.SetAlwaysSendArmy.ToNodeId),

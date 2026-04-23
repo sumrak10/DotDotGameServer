@@ -5,7 +5,7 @@ import (
 	nodespb "OnlineGame/pkg/pb/go/game/world/nodes"
 )
 
-type ArmyID uint64
+type ArmyID uint32
 
 type Army struct {
 	ID            ArmyID     `json:"id"`
