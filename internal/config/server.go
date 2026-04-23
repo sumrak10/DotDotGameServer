@@ -18,6 +18,9 @@ type ServerConfig struct {
 	ServerPort uint   `env:"SERVER_PORT,required"`
 	ServerSSL  bool   `env:"SERVER_SSL,required"`
 	TPS        uint   `env:"SERVER_TPS,required"`
+
+	BindHost string `env:"BIND_HOST" envDefault:"0.0.0.0"`
+	BindPort uint   `env:"BIND_PORT" envDefault:"8080"`
 }
 
 func Server() *ServerConfig {
@@ -28,6 +31,10 @@ func Server() *ServerConfig {
 		}
 	})
 	return instanceServerConfig
+}
+
+func (s *ServerConfig) GetBindAddress() string {
+	return fmt.Sprintf("%s:%d", s.BindHost, s.BindPort)
 }
 
 func (s *ServerConfig) GetBaseURL() string {

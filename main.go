@@ -26,5 +26,5 @@ func main() {
 	fmt.Println("Manager initialized...")
 
 	s := server.NewServer()
-	log.Fatal(s.Start(fmt.Sprintf("0.0.0.0:%d", config.Server().ServerPort)))
+	log.Fatal(s.Start(config.Server().GetBindAddress()))
 }
