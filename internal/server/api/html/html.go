@@ -16,9 +16,11 @@ func RegisterHtmlRoutes(r *mux.Router) {
 func Index(w http.ResponseWriter, r *http.Request) {
 	context := struct {
 		BaseURL         string
+		WSBaseURL       string
 		ValuesScaleCoef uint
 	}{
-		BaseURL:         config.Server().GetAddress(),
+		BaseURL:         config.Server().GetBaseURL(),
+		WSBaseURL:       config.Server().GetWSBaseURL(),
 		ValuesScaleCoef: config.Game().ValuesScaleCoef,
 	}
 	tmpl, err := template.ParseFS(templates.TemplatesFS, "index.html")

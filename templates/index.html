@@ -640,7 +640,8 @@
 
 <script src="/static/protobuf.min.js"></script>
 <script>
-    const BASE = '{{ .BaseURL }}';
+    const BASE_URL = '{{ .BaseURL }}';
+    const WS_BASE_URL = '{{ .WSBaseURL }}';
     const GAME_VALUES_SCALE_COEF = '{{ .ValuesScaleCoef }}'
     let token = localStorage.getItem('token');
     let myUsername = null;
@@ -730,7 +731,7 @@
         };
         if (auth) opts.headers['Authorization'] = `Bearer ${token}`;
         if (body) opts.body = JSON.stringify(body);
-        const r = await fetch(`http://${BASE}${path}`, opts);
+        const r = await fetch(`${BASE_URL}${path}`, opts);
         if (!r.ok) {
             const e = await r.text().catch(() => r.statusText);
             throw new Error(e || r.statusText);
@@ -977,7 +978,7 @@
     // ── WebSocket ──────────────────────────────────────────────────
     function connectSocket() {
         if (socket) socket.close();
-        socket = new WebSocket(`ws://${BASE}/ws?token=${token}`);
+        socket = new WebSocket(`${WS_BASE_URL}/ws?token=${token}`);
         socket.binaryType = "arraybuffer";
 
         socket.onopen = () => {

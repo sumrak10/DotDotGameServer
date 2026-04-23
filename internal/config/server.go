@@ -16,6 +16,7 @@ var (
 type ServerConfig struct {
 	ServerHost string `env:"SERVER_HOST,required"`
 	ServerPort uint   `env:"SERVER_PORT,required"`
+	ServerSSL  bool   `env:"SERVER_SSL,required"`
 	TPS        uint   `env:"SERVER_TPS,required"`
 }
 
@@ -29,6 +30,22 @@ func Server() *ServerConfig {
 	return instanceServerConfig
 }
 
-func (s *ServerConfig) GetAddress() string {
-	return fmt.Sprintf("%s:%d", s.ServerHost, s.ServerPort)
+func (s *ServerConfig) GetBaseURL() string {
+	var result string
+	if s.ServerSSL {
+		result = fmt.Sprintf("https://%s:%d", s.ServerHost, s.ServerPort)
+	} else {
+		result = fmt.Sprintf("http://%s:%d", s.ServerHost, s.ServerPort)
+	}
+	return result
+}
+
+func (s *ServerConfig) GetWSBaseURL() string {
+	var result string
+	if s.ServerSSL {
+		result = fmt.Sprintf("wss://%s:%d", s.ServerHost, s.ServerPort)
+	} else {
+		result = fmt.Sprintf("ws://%s:%d", s.ServerHost, s.ServerPort)
+	}
+	return result
 }
