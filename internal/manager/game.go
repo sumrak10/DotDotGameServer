@@ -77,7 +77,7 @@ func (m *Manager) StartGame(clientID uint, matchID uint) error {
 
 	_lobby := m.lobby[matchID]
 	if len(_lobby) < int(minPlayers) {
-		return fmt.Errorf("provided %d players. for start needed minimum %d", len(_lobby), _game.ExampleWorld.MinPlayers)
+		return fmt.Errorf("provided %d players. for start needed minimum %d", len(_lobby), minPlayers)
 	}
 
 	err = _game.Start(_lobby)

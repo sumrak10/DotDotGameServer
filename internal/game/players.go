@@ -5,12 +5,14 @@ import (
 )
 
 type Player struct {
+	GID     uint
 	Client  *clients.Client
 	IsAlive bool
 }
 
-func NewPlayer(client *clients.Client) *Player {
+func NewPlayer(GID uint, client *clients.Client) *Player {
 	return &Player{
+		GID:     GID,
 		Client:  client,
 		IsAlive: true,
 	}

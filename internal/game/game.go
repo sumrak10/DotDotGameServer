@@ -59,8 +59,9 @@ func (g *Game) Start(clients []*clients.Client) error {
 
 	playerGIDnIDMap := make(map[uint]uint)
 	for i, client := range clients {
-		g.players[client.User.ID] = NewPlayer(client)
-		playerGIDnIDMap[uint(i)+1] = client.User.ID
+		player := NewPlayer(uint(i)+1, client)
+		g.players[client.User.ID] = player
+		playerGIDnIDMap[player.GID] = client.User.ID
 	}
 	g.world.Init(playerGIDnIDMap)
 
